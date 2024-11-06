@@ -4,17 +4,16 @@ import argparse
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-
+import os 
 from datasets import (
-    load_from_disk,
-    DatasetDict, 
     Dataset
 )
 from transformers import (
     PreTrainedTokenizerFast,
     FalconForSequenceClassification,
-    Trainer,
 )
+from tqdm import tqdm
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
 from sklearn.metrics import (
     roc_auc_score, 
@@ -27,27 +26,38 @@ from sklearn.metrics import (
 
 from utils import get_full_aa_sub
 
+class AntibodyRepertoireDataset(Dataset):
+    def __init__(self, sequences):
+        self.sequences = sequences
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self,index):
+        return self.sequences[index]
+
+
 def setup(rank, world_size):
-    # initialize the process group
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    print('RANK',rank)
     torch.cuda.set_device(rank)
+
+def cleanup():
+    dist.destroy_process_group()
 
 def main(
     input_path: str,
     output_path: str,
-    HF_dataset_path: str,
     tokenizer_path: str,
     model_path: str,
-    # local_rank: int
-    # vh_column: str = typer.Option("sequence_vh", help ="Column in input file which contains the heavy chain sequence")
+    local_rank: int = 0,
+    world_size: int = 1
 ):
-    
-    # dist.init_process_group(backend='nccl')
-    # torch.cuda.set_device(local_rank)
+    setup(local_rank,
+          world_size)
+
     if input_path.endswith('.csv'):
-        #LOAD DATASET
         dataset_to_predict=pd.read_csv(input_path)
-        original_columns = dataset_to_predict.copy()
 
         available_columns=dataset_to_predict.columns
         
@@ -70,95 +80,85 @@ def main(
             lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
             axis=1
             )
-            original_columns = dataset_to_predict.copy()
 
 
-    #PREPARE DATASET INTO HF FORMAT
     dataset_to_predict['sequence']='Ḣ'+dataset_to_predict['sequence_vh']
-    # Dataset is a HuggingFace dataset object that can be converted from Pandas.
-    dd = DatasetDict({
-        "test": Dataset.from_pandas(dataset_to_predict)
-    })
     
     tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
-    model = FalconForSequenceClassification.from_pretrained(model_path).eval()
-    # model = FalconForSequenceClassification.from_pretrained(model_path).to(local_rank)
-    # model = DDP(model, device_ids=[local_rank])
-    dd = dd.map(
-    
-        # The lambda calls the Fabcon tokenizer to convert amino acids into token IDs (i.e. integers)
-        lambda row: tokenizer(row['sequence'],
-                            return_tensors='pt',
-                            max_length=256, ## FAbCon and AntiBERTa2 can only accept up to 256 tokens
-                        padding=True),
-        
-        # tokenize 32 sequences at a time
-        batched=True,
-        batch_size=32,
-        
-        # we want to remove columns in the Dataset object because they're not needed by the Falcon/Fabcon model.
-        # for Fabcon we only need input_ids, attention_mask, and label
-        remove_columns=['sequence_vh', 'sequence'] #'label', 
-    ).remove_columns("token_type_ids")
-    
-    #SAVE NEW HF DATASET
-    dd.save_to_disk(HF_dataset_path)
 
-    tokenized_dataset=load_from_disk(HF_dataset_path)
-
-    trainer = Trainer(
-            model=model,
-            tokenizer=tokenizer
+    def collate_fn(text, tokenizer=tokenizer):
+        # pads to max length in batch
+        tokenized_input = tokenizer(
+            text,
+            return_tensors='pt',
+            padding=True,
+            max_length=256
         )
-    
-    trainer_prediction_output=trainer.predict(test_dataset=tokenized_dataset['test'])
-    
-    #Calculating probs of being a viral sequence
-    probs = torch.softmax(torch.from_numpy(trainer_prediction_output.predictions), dim=1).detach().numpy()
-    probs = probs[:, -1]
-    
-    dataset_to_predict['viral_prob']=probs
-    dataset_to_predict['human_prob'] = 1 - dataset_to_predict['viral_prob']
+        tokenized_input['text'] = text
+        return tokenized_input
+    model = FalconForSequenceClassification.from_pretrained(model_path).to(local_rank)
+    model = DDP(model, device_ids=[local_rank])
+
+    sequences = dataset_to_predict['sequence'].unique().tolist()
+
+    dataset = AntibodyRepertoireDataset(sequences)
+    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=local_rank)
+
+    dataloader = DataLoader(dataset, batch_size=16, sampler=sampler,
+                            collate_fn=collate_fn)
+    sequences = []
+    viral_probabilities = []
+    with torch.no_grad():
+        for batch in tqdm(dataloader):
+            inputs = {
+                'input_ids': batch['input_ids'].to(local_rank),
+                'attention_mask': batch['attention_mask'].to(local_rank)
+            }
+
+            o = model(**inputs).logits
+            probs = torch.softmax(o.cpu(), dim=1).detach().numpy()  
+            
+            probs = probs[:, -1] 
+            # sequences are stored in batch['text']
+            # probabilities are stored in probs
+            viral_probabilities.extend(probs)
+            sequences.extend(batch['text'])
+    output_df = pd.DataFrame({
+        'sequence_vh': sequences,
+        'viral_prob': viral_probabilities
+    })
+
+    merged_df = dataset_to_predict.merge(
+    output_df,
+    left_on='sequence',
+    right_on='sequence_vh',
+    how='left'
+)
+    merged_df['human_prob'] = 1 - merged_df['viral_prob']
 
     # Define conditions
     conditions = [
-        dataset_to_predict['viral_prob'] > 0.95,
-        dataset_to_predict['human_prob'] > 0.95
+        merged_df['viral_prob'] > 0.95,
+        merged_df['human_prob'] > 0.95
     ]
 
     # Define choices for each condition
     choices = ['viral', 'human']
 
     # Apply conditions to create 'human_viral_prediction' column
-    dataset_to_predict['human_viral_prediction'] = np.select(
+    merged_df['human_viral_prediction'] = np.select(
         conditions, choices, default=""
     )
 
-
     if ".csv" in output_path:
-        final_output = pd.merge(
-            original_columns,
-            dataset_to_predict[['sequence_vh', 'viral_prob', 'human_prob', 'human_viral_prediction']],
-            on='sequence_vh',
-            how='left'
-        )
-        final_output.to_csv(output_path,index=None)
+        merged_df.to_csv(output_path,index=None)
     elif ".tsv" in output_path:
-        # original_columns['sequence_vh'] = original_columns.apply(
-        #     lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
-        #     axis=1
-        # )
-        final_output = pd.merge(
-            original_columns,
-            dataset_to_predict[['sequence_vh', 'viral_prob', 'human_prob', 'human_viral_prediction']],
-            on='sequence_vh',
-            how='left'
-        )
-        final_output.to_csv(output_path,index=None,sep="\t")
-    
+        merged_df.to_csv(output_path,index=None,sep="\t")
+
     if 'label' in available_columns:
-        labels=list(trainer_prediction_output.label_ids)
-        probs_binary=[1 if x>0.5 else 0 for x in probs]
+        labels=merged_df['label'].values
+        probs=merged_df['viral_prob'].values
+        probs_binary=[1 if x>0.5 else 0 for x in viral_probabilities]
         auc=roc_auc_score(labels, probs)
         aupr=average_precision_score(labels, probs)
         f1=f1_score(labels,probs_binary)
@@ -168,27 +168,30 @@ def main(
         
         print('roc_auc:',auc,'average_precision_score',aupr,'f1:',f1,'precision:',precision,'recall:',recall,'mcc',mcc)
 
+    cleanup()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Viral Sequence Prediction', 
                                      usage="""torchrun --nproc_per_node=[NUMBER_OF_GPUS] predict.py \
-                                     --input_path ... \
-                                     --output_path ... \
-                                     --HF_dataset_path ... \
-                                     --tokenizer_path ... \
-                                     --model_path ... \
-                                     --local_rank 1""")
+                                     --input_path [PATH_TO_INPUT_TSV_OR_CSV] \
+                                     --output_path [PATH_TO_OUTPUT_TSV_OR_CSV] \
+                                     --tokenizer_path [PATH_TO_TOKENIZER] \
+                                     --model_path [PATH_TO_MODEL] \
+                                     """)
     parser.add_argument('--input_path', type=str, required=True, help='.csv format file with columns: sequence_vh, label (1 for viral 0 otherwise, optional)')
     parser.add_argument('--output_path', type=str, required=True, help='Output file')
-    parser.add_argument('--HF_dataset_path', type=str, default='./hf_dataset/', help='Folder to save a Hugging Face dataset created from csv file sequences')
     parser.add_argument('--tokenizer_path', type=str, default='./fabcon-small/', help='Path to the tokenizer for your model')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model')
-    # parser.add_argument('--local_rank', type=int, default=-1, help='Local rank for distributed training')
 
     args = parser.parse_args()
+
+    world_size = int(os.environ['LOCAL_WORLD_SIZE'])
+    rank = int(os.environ['RANK'])
+
     main(args.input_path, 
          args.output_path, 
-         args.HF_dataset_path, 
          args.tokenizer_path, 
          args.model_path,
-        #  args.local_rank
+         rank,
+         world_size
          )
