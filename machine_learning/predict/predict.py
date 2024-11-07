@@ -14,6 +14,7 @@ from transformers import (
 )
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
+from aws_handler import download_s3_object, upload_file_to_s3
 
 from sklearn.metrics import (
     roc_auc_score, 
@@ -130,7 +131,7 @@ def main(
         'sequence_vh': sequences,
         'human_probability': human_probabilities
     })
-    max_human_probability = output_df['human_probability'].max()
+
     merged_df = original_columns.merge(
     output_df,
     left_on='fabcon_sequence',
@@ -172,27 +173,47 @@ def main(
     cleanup()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Viral Sequence Prediction', 
+    parser = argparse.ArgumentParser(description='Human Sequence Prediction', 
                                      usage="""torchrun --nproc_per_node=[NUMBER_OF_GPUS] predict.py \
                                      --input_path [PATH_TO_INPUT_TSV_OR_CSV] \
                                      --output_path [PATH_TO_OUTPUT_TSV_OR_CSV] \
                                      --tokenizer_path [PATH_TO_TOKENIZER] \
                                      --model_path [PATH_TO_MODEL] \
+                                     --local [BOOLEAN]
                                      """)
     parser.add_argument('--input_path', type=str, required=True, help='.csv format file with columns: sequence_vh, label (1 for viral 0 otherwise, optional)')
     parser.add_argument('--output_path', type=str, required=True, help='Output file')
     parser.add_argument('--tokenizer_path', type=str, default='./fabcon-small/', help='Path to the tokenizer for your model')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model')
+    parser.add_argument('--local_file', nargs='?', action='store_true', default=True, type=bool, required=False, help='If local, pass in a local file for analysis and output the file locally. If not local, download from AWS')
 
     args = parser.parse_args()
 
     world_size = int(os.environ['LOCAL_WORLD_SIZE'])
-    rank = int(os.environ['RANK'])
+    rank = int(os.environ['LOCAL_RANK'])
 
-    main(args.input_path, 
-         args.output_path, 
-         args.tokenizer_path, 
-         args.model_path,
-         rank,
-         world_size
-         )
+    if not args.local or args.local == "False":
+        # download s3 file to specified path, might need to change path later but for now /app/files
+        file_name = args.input_path.split("/")[-1]
+        download_s3_object(args.input_path, '/app/files')
+        input_local_path=f"/app/files/{file_name}"
+        output_local_path=f"/app/files/autoantibody_annotated_{file_name}"
+        output_s3_path=f"s3://alchemab-scratch/jess_scratch/autoantibody_classifier/outputs/autoantibody_annotated_{file_name}"
+        main(input_local_path, 
+            output_local_path, 
+            args.tokenizer_path, 
+            args.model_path,
+            rank,
+            world_size
+            )
+        # upload filled in tsv or csv to specified s3 path
+        upload_file_to_s3(output_local_path, output_s3_path)
+    else:
+        main(args.input_path, 
+            args.output_path, 
+            args.tokenizer_path, 
+            args.model_path,
+            rank,
+            world_size
+            )
+    
