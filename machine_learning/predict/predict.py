@@ -39,7 +39,6 @@ class AntibodyRepertoireDataset(Dataset):
 
 def setup(rank, world_size):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
-    print('RANK',rank)
     torch.cuda.set_device(rank)
 
 def cleanup():
@@ -57,20 +56,23 @@ def main(
           world_size)
 
     if input_path.endswith('.csv'):
+        #LOAD DATASET
         dataset_to_predict=pd.read_csv(input_path)
 
         available_columns=dataset_to_predict.columns
-        
+        dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+        original_columns = dataset_to_predict.copy()
         if 'label' in available_columns:
-            dataset_to_predict=dataset_to_predict[['sequence_vh','label']].copy()
+            dataset_to_predict=dataset_to_predict[['fabcon_sequence','label']].copy()
             dataset_to_predict['label'] = dataset_to_predict['label'].astype(int)
         else:
-            dataset_to_predict=dataset_to_predict[['sequence_vh']].copy()
+            dataset_to_predict=dataset_to_predict[['fabcon_sequence']].copy()
     
     # output from pipeline is tsv files
     elif input_path.endswith('.tsv'):
-        dataset_to_predict=pd.read_csv(input_path, sep='\t')  
+        dataset_to_predict=pd.read_csv(input_path, sep='\t')
         available_columns=dataset_to_predict.columns
+
         if 'sequence_vh' in available_columns:
             raise NameError('tsv file already has sequence_vh column. Please remove it to continue')
         elif 'sequence_alignment' not in available_columns and 'germline_alignment_d_mask' not in available_columns:
@@ -80,9 +82,10 @@ def main(
             lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
             axis=1
             )
+            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+            original_columns = dataset_to_predict.copy()
 
-
-    dataset_to_predict['sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+    # dataset_to_predict['sequence']='Ḣ'+dataset_to_predict['sequence_vh']
     
     tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
 
@@ -99,7 +102,7 @@ def main(
     model = FalconForSequenceClassification.from_pretrained(model_path).to(local_rank)
     model = DDP(model, device_ids=[local_rank])
 
-    sequences = dataset_to_predict['sequence'].unique().tolist()
+    sequences = dataset_to_predict['fabcon_sequence'].unique().tolist()
 
     dataset = AntibodyRepertoireDataset(sequences)
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=local_rank)
@@ -107,7 +110,7 @@ def main(
     dataloader = DataLoader(dataset, batch_size=16, sampler=sampler,
                             collate_fn=collate_fn)
     sequences = []
-    viral_probabilities = []
+    human_probabilities = []
     with torch.no_grad():
         for batch in tqdm(dataloader):
             inputs = {
@@ -121,32 +124,30 @@ def main(
             probs = probs[:, -1] 
             # sequences are stored in batch['text']
             # probabilities are stored in probs
-            viral_probabilities.extend(probs)
+            human_probabilities.extend(probs)
             sequences.extend(batch['text'])
     output_df = pd.DataFrame({
         'sequence_vh': sequences,
-        'viral_prob': viral_probabilities
+        'human_probability': human_probabilities
     })
-
-    merged_df = dataset_to_predict.merge(
+    max_human_probability = output_df['human_probability'].max()
+    merged_df = original_columns.merge(
     output_df,
-    left_on='sequence',
+    left_on='fabcon_sequence',
     right_on='sequence_vh',
     how='left'
 )
-    merged_df['human_prob'] = 1 - merged_df['viral_prob']
 
     # Define conditions
     conditions = [
-        merged_df['viral_prob'] > 0.95,
-        merged_df['human_prob'] > 0.95
+        merged_df['human_probability'] > 0.99
     ]
 
     # Define choices for each condition
-    choices = ['viral', 'human']
+    choices = ['human']
 
     # Apply conditions to create 'human_viral_prediction' column
-    merged_df['human_viral_prediction'] = np.select(
+    merged_df['prediction'] = np.select(
         conditions, choices, default=""
     )
 
@@ -157,8 +158,8 @@ def main(
 
     if 'label' in available_columns:
         labels=merged_df['label'].values
-        probs=merged_df['viral_prob'].values
-        probs_binary=[1 if x>0.5 else 0 for x in viral_probabilities]
+        probs=merged_df['human_probability'].values
+        probs_binary=[1 if x>0.5 else 0 for x in probs]
         auc=roc_auc_score(labels, probs)
         aupr=average_precision_score(labels, probs)
         f1=f1_score(labels,probs_binary)
