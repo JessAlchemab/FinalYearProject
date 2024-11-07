@@ -185,14 +185,14 @@ if __name__ == "__main__":
     parser.add_argument('--output_path', type=str, required=True, help='Output file')
     parser.add_argument('--tokenizer_path', type=str, default='./fabcon-small/', help='Path to the tokenizer for your model')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model')
-    parser.add_argument('--local_file', nargs='?', action='store_true', default=True, type=bool, required=False, help='If local, pass in a local file for analysis and output the file locally. If not local, download from AWS')
+    parser.add_argument('--local_file', action='store_true', default=True, help='If local, pass in a local file for analysis and output the file locally. If not local, download from AWS')
 
     args = parser.parse_args()
 
     world_size = int(os.environ['LOCAL_WORLD_SIZE'])
     rank = int(os.environ['LOCAL_RANK'])
 
-    if not args.local or args.local == "False":
+    if not args.local_file or args.local_file == "False":
         # download s3 file to specified path, might need to change path later but for now /app/files
         file_name = args.input_path.split("/")[-1]
         download_s3_object(args.input_path, '/app/files')
