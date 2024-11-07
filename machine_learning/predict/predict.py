@@ -179,20 +179,30 @@ if __name__ == "__main__":
                                      --output_path [PATH_TO_OUTPUT_TSV_OR_CSV] \
                                      --tokenizer_path [PATH_TO_TOKENIZER] \
                                      --model_path [PATH_TO_MODEL] \
-                                     --local [BOOLEAN]
+                                     --file_source [BOOLEAN]
                                      """)
     parser.add_argument('--input_path', type=str, required=True, help='.csv format file with columns: sequence_vh, label (1 for viral 0 otherwise, optional)')
     parser.add_argument('--output_path', type=str, required=True, help='Output file')
     parser.add_argument('--tokenizer_path', type=str, default='./fabcon-small/', help='Path to the tokenizer for your model')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model')
-    parser.add_argument('--local_file', action='store_true', default=True, help='If local, pass in a local file for analysis and output the file locally. If not local, download from AWS')
+    parser.add_argument('--file_source', type=str, default='local', choices=['local', 'aws'], help='Source of the input file: local or aws')
 
     args = parser.parse_args()
 
     world_size = int(os.environ['LOCAL_WORLD_SIZE'])
     rank = int(os.environ['LOCAL_RANK'])
 
-    if not args.local_file or args.local_file == "False":
+
+    if args.file_source == 'local':
+        main(args.input_path, 
+            args.output_path, 
+            args.tokenizer_path, 
+            args.model_path,
+            rank,
+            world_size
+            )
+    
+    else:
         # download s3 file to specified path, might need to change path later but for now /app/files
         file_name = args.input_path.split("/")[-1]
         download_s3_object(args.input_path, '/app/files')
@@ -208,12 +218,3 @@ if __name__ == "__main__":
             )
         # upload filled in tsv or csv to specified s3 path
         upload_file_to_s3(output_local_path, output_s3_path)
-    else:
-        main(args.input_path, 
-            args.output_path, 
-            args.tokenizer_path, 
-            args.model_path,
-            rank,
-            world_size
-            )
-    
