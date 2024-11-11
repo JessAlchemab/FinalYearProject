@@ -3,8 +3,9 @@
 FROM mambaorg/micromamba:1-focal-cuda-11.7.1
 USER root
 COPY --chown=$MAMBA_USER:$MAMBA_USER env.yaml /tmp/env.yaml
-RUN micromamba install -y -n base -f /tmp/env.yaml && \
-    micromamba clean --all --yes
+RUN micromamba install -y -n predict -f /tmp/env.yaml && \
+    micromamba clean --all --yes && \
+    rm -f /tmp/env.yaml
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
     wget \
@@ -27,21 +28,21 @@ RUN apt-get update && apt-get install -y \
 #     && rm -rf /var/lib/apt/lists/*
 
 ENV TORCH_DISTRIBUTED_DEBUG=DETAIL
-ENV MASTER_ADDR=localhost
-ENV MASTER_PORT=29500
 
 # Create and activate the 'predict' environment
-RUN micromamba create -n predict -y
+# RUN micromamba create -n predict -y
 RUN eval "$(micromamba shell hook --shell bash) "
 # RUN micromamba activate
 ENV CONDA_PREFIX /opt/micromamba/envs/predict
 ENV PATH "$CONDA_PREFIX/bin:$PATH"
-RUN /bin/bash -c micromamba activate predict
+# RUN /bin/bash -c micromamba activate predict
 RUN pip --no-cache-dir install --upgrade awscli
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.txt /tmp/
+RUN pip install -r requirements.txt && \
+    pip clean && \
+    rm /tmp/requirements.txt
 
 # Set the working directory
 WORKDIR /app
@@ -51,12 +52,12 @@ COPY download_assets.sh /app/
 RUN chmod +x /app/download_assets.sh && /app/download_assets.sh
 
 # On initialising the container make it run the script(?)
-ENTRYPOINT ["/bin/bash", "-c", "torchrun --nproc_per_node=1 /app/predict.py \
-    --input_path ${INPUT_FILE} \
-    --output_path ${OUTPUT_FILE} \
-    --tokenizer_path /app/autoantibody_model/tokenizers \
-    --model_path /app/autoantibody_model/trained_model/classifier-model \
-    --file_source aws \
-    "]
+# ENTRYPOINT ["/bin/bash", "-c", "torchrun --nproc_per_node=1 /app/predict.py \
+#     --input_path ${INPUT_FILE} \
+#     --output_path ${OUTPUT_FILE} \
+#     --tokenizer_path /app/autoantibody_model/tokenizers \
+#     --model_path /app/autoantibody_model/trained_model/classifier-model \
+#     --file_source aws \
+#     "]
     
 #docker run -e ENABLE_CUDA=1 -e INPUT_FILE=s3://alchemab-scratch/jess_scratch/autoantibody_classifier/inputs/SE_0000222.tsv -e OUTPUT_FILE=SE_0000222.tsv --rm --gpus all -it autoantibody_classifier:latest

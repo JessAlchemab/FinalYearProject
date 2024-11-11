@@ -2,6 +2,7 @@ import boto3
 import os
 import sys
 from urllib.parse import urlparse
+from botocore.exceptions import ClientError
 
 def download_s3_object(s3_path, download_dir="/app/files"):
     # Parse the S3 path
@@ -48,4 +49,19 @@ def upload_file_to_s3(local_file_path, s3_path):
     print(f"Uploaded {local_file_path} to {s3_path}")
     return {"status": "success", "message": f"Uploaded {local_file_path} to {s3_path}"}
 
-
+def upload_metrics_to_dynamodb(metrics: dict, table_name: str, hash_id: str):
+    # Initialize DynamoDB client
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(table_name)
+    
+    # Prepare item with metrics and primary key
+    item = {'hash_id': hash_id, **metrics}
+    
+    try:
+        # Put item in DynamoDB
+        response = table.put_item(Item=item)
+        print("Metrics successfully uploaded to DynamoDB.")
+        return response
+    except ClientError as e:
+        print(f"Failed to upload metrics: {e.response['Error']['Message']}")
+        return None

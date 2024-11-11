@@ -47,7 +47,8 @@ def cleanup():
 
 def main(
     input_path: str,
-    output_path: str,
+    output_file: str,
+    output_format: str,
     tokenizer_path: str,
     model_path: str,
     local_rank: int = 0,
@@ -70,8 +71,11 @@ def main(
             dataset_to_predict=dataset_to_predict[['fabcon_sequence']].copy()
     
     # output from pipeline is tsv files
-    elif input_path.endswith('.tsv'):
-        dataset_to_predict=pd.read_csv(input_path, sep='\t')
+    elif input_path.endswith('.tsv') or input_path.endswith('.parquet'):
+        if input_path.endswith('.tsv'):
+            dataset_to_predict=pd.read_csv(input_path, sep='\t')
+        else:
+            dataset_to_predict=pd.read_parquet(input_path)
         available_columns=dataset_to_predict.columns
 
         if 'sequence_vh' in available_columns:
@@ -151,11 +155,14 @@ def main(
     merged_df['prediction'] = np.select(
         conditions, choices, default=""
     )
+    # file_path = input_path.split("/")[:-1].join("/")
 
-    if ".csv" in output_path:
-        merged_df.to_csv(output_path,index=None)
-    elif ".tsv" in output_path:
-        merged_df.to_csv(output_path,index=None,sep="\t")
+    if "csv" in output_format:
+        merged_df.to_csv(f"{output_file}.csv", index=None)
+    elif "tsv" in output_format:
+        merged_df.to_csv(f"{output_file}.tsv", index=None, sep="\t")
+    elif "parquet" in output_format:
+        merged_df.to_parquet(f"{output_file}.parquet", index=None)
 
     if 'label' in available_columns:
         labels=merged_df['label'].values
@@ -176,16 +183,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Human Sequence Prediction', 
                                      usage="""torchrun --nproc_per_node=[NUMBER_OF_GPUS] predict.py \
                                      --input_path [PATH_TO_INPUT_TSV_OR_CSV] \
-                                     --output_path [PATH_TO_OUTPUT_TSV_OR_CSV] \
+                                     --output_file [OUTPUT FILE NAME] \
                                      --tokenizer_path [PATH_TO_TOKENIZER] \
                                      --model_path [PATH_TO_MODEL] \
                                      --file_source [BOOLEAN]
                                      """)
     parser.add_argument('--input_path', type=str, required=True, help='.csv format file with columns: sequence_vh, label (1 for viral 0 otherwise, optional)')
-    parser.add_argument('--output_path', type=str, required=True, help='Output file')
+    parser.add_argument('--output_file', type=str, required=False, default='autoantibody_annotated', help='output file name without extensions. Can be full path or just file name')
+    parser.add_argument('--output_format', type=str, required=True, default='tsv', choices=['tsv', 'csv', 'parquet'], help='output file format. tsv or csv or parquet.')
     parser.add_argument('--tokenizer_path', type=str, default='./fabcon-small/', help='Path to the tokenizer for your model')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model')
-    parser.add_argument('--file_source', type=str, default='local', choices=['local', 'aws'], help='Source of the input file: local or aws')
+    # parser.add_argument('--file_source', type=str, default='local', choices=['local', 'aws'], help='Source of the input file: local or aws')
 
     args = parser.parse_args()
 
@@ -193,28 +201,29 @@ if __name__ == "__main__":
     rank = int(os.environ['LOCAL_RANK'])
 
 
-    if args.file_source == 'local':
-        main(args.input_path, 
-            args.output_path, 
-            args.tokenizer_path, 
-            args.model_path,
-            rank,
-            world_size
-            )
+    # if args.file_source == 'local':
+    main(args.input_path, 
+        args.output_file, 
+        args.output_format,
+        args.tokenizer_path, 
+        args.model_path,
+        rank,
+        world_size
+        )
     
-    else:
+    # else:
         # download s3 file to specified path, might need to change path later but for now /app/files
-        file_name = args.input_path.split("/")[-1]
-        download_s3_object(args.input_path, '/app/files')
-        input_local_path=f"/app/files/{file_name}"
-        output_local_path=f"/app/files/autoantibody_annotated_{file_name}"
-        output_s3_path=f"s3://alchemab-scratch/jess_scratch/autoantibody_classifier/outputs/autoantibody_annotated_{file_name}"
-        main(input_local_path, 
-            output_local_path, 
-            args.tokenizer_path, 
-            args.model_path,
-            rank,
-            world_size
-            )
-        # upload filled in tsv or csv to specified s3 path
-        upload_file_to_s3(output_local_path, output_s3_path)
+        # file_name = args.input_path.split("/")[-1]
+        # download_s3_object(args.input_path, '/app/files')
+        # input_local_path=f"/app/files/{file_name}"
+        # output_local_path=f"/app/files/autoantibody_annotated_{file_name}"
+        # output_s3_path=f"s3://alchemab-scratch/jess_scratch/autoantibody_classifier/outputs/autoantibody_annotated_{file_name}"
+        # main(input_local_path, 
+        #     output_local_path, 
+        #     args.tokenizer_path, 
+        #     args.model_path,
+        #     rank,
+        #     world_size
+        #     )
+        # # upload filled in tsv or csv to specified s3 path
+        # upload_file_to_s3(output_local_path, output_s3_path)

@@ -15,6 +15,7 @@ touch /app/predict.py
 touch /app/utils.py
 touch /app/aws_handler.py
 wget -O /app/predict.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/predict.py
+wget -O /app/analyse_metrics.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/analyse_metrics.py
 wget -O /app/utils.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/utils.py
 wget -O /app/aws_handler.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/aws_handler.py
 # Verify downloads
