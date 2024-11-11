@@ -5,6 +5,7 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import os 
+import sys
 from datasets import (
     Dataset
 )
@@ -48,7 +49,7 @@ def cleanup():
 def main(
     input_path: str,
     output_file: str,
-    output_format: str,
+    # output_format: str,
     tokenizer_path: str,
     model_path: str,
     local_rank: int = 0,
@@ -157,13 +158,15 @@ def main(
     )
     # file_path = input_path.split("/")[:-1].join("/")
 
-    if "csv" in output_format:
-        merged_df.to_csv(f"{output_file}.csv", index=None)
-    elif "tsv" in output_format:
-        merged_df.to_csv(f"{output_file}.tsv", index=None, sep="\t")
-    elif "parquet" in output_format:
-        merged_df.to_parquet(f"{output_file}.parquet", index=None)
-
+    if output_file.endswith('.csv'):
+        merged_df.to_csv(output_file, index=None)
+    elif output_file.endswith('.tsv'):
+        merged_df.to_csv(output_file, index=None, sep="\t")
+    elif output_file.endswith('.parquet'):
+        merged_df.to_parquet(output_file, index=None)
+    else:  
+        sys.exit('File extension not recognised. Please choose one of .csv, .tsv, or .parquet')
+        
     if 'label' in available_columns:
         labels=merged_df['label'].values
         probs=merged_df['human_probability'].values
@@ -189,8 +192,8 @@ if __name__ == "__main__":
                                      --file_source [BOOLEAN]
                                      """)
     parser.add_argument('--input_path', type=str, required=True, help='.csv format file with columns: sequence_vh, label (1 for viral 0 otherwise, optional)')
-    parser.add_argument('--output_file', type=str, required=False, default='autoantibody_annotated', help='output file name without extensions. Can be full path or just file name')
-    parser.add_argument('--output_format', type=str, required=True, default='tsv', choices=['tsv', 'csv', 'parquet'], help='output file format. tsv or csv or parquet.')
+    parser.add_argument('--output_file', type=str, required=True, help='output file name with extensions. Can be full path or just file name')
+    # parser.add_argument('--output_format', type=str, required=True, default='tsv', choices=['tsv', 'csv', 'parquet'], help='output file format. tsv or csv or parquet.')
     parser.add_argument('--tokenizer_path', type=str, default='./fabcon-small/', help='Path to the tokenizer for your model')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model')
     # parser.add_argument('--file_source', type=str, default='local', choices=['local', 'aws'], help='Source of the input file: local or aws')
@@ -204,7 +207,7 @@ if __name__ == "__main__":
     # if args.file_source == 'local':
     main(args.input_path, 
         args.output_file, 
-        args.output_format,
+        # args.output_format,
         args.tokenizer_path, 
         args.model_path,
         rank,
