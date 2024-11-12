@@ -123,10 +123,10 @@ if __name__ == "__main__":
         description='Analyze antibody sequencing data from parquet or TSV files.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('file_path', 
+    parser.add_argument('--file_path', 
                        help='Path to the input file (parquet or TSV format)')
-    parser.add_argument('rds_table', help='RDS table to add metrics to')
-    parser.add_argument('hash_id', help='hash id from zeus to use as primary key')
+    parser.add_argument('--rds_table', help='RDS table to add metrics to')
+    parser.add_argument('--hash_id', help='hash id from zeus to use as primary key')
     parser.add_argument('--output', '-o',
                        help='Path to save output as JSON (optional)',
                        default=None)
