@@ -3,6 +3,8 @@ import os
 import sys
 from urllib.parse import urlparse
 from botocore.exceptions import ClientError
+import pandas as pd
+import sqlalchemy
 
 def download_s3_object(s3_path, download_dir="/app/files"):
     # Parse the S3 path
@@ -49,19 +51,16 @@ def upload_file_to_s3(local_file_path, s3_path):
     print(f"Uploaded {local_file_path} to {s3_path}")
     return {"status": "success", "message": f"Uploaded {local_file_path} to {s3_path}"}
 
-def upload_metrics_to_dynamodb(metrics: dict, table_name: str, hash_id: str):
-    # Initialize DynamoDB client
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(table_name)
+def upload_metrics_to_rds(metrics, hash_id, table_name, rds_connection_string):
+    # Convert metrics dictionary to a DataFrame
+    df = pd.DataFrame.from_dict(metrics, orient='index').T
+    df.index.name = 'hash_id'
+    df['hash_id'] = hash_id
     
-    # Prepare item with metrics and primary key
-    item = {'hash_id': hash_id, **metrics}
+    # Create connection to RDS
+    engine = sqlalchemy.create_engine(rds_connection_string)
     
-    try:
-        # Put item in DynamoDB
-        response = table.put_item(Item=item)
-        print("Metrics successfully uploaded to DynamoDB.")
-        return response
-    except ClientError as e:
-        print(f"Failed to upload metrics: {e.response['Error']['Message']}")
-        return None
+    # Upload DataFrame to RDS table
+    df.to_sql(table_name, engine, if_exists='append', index=False)
+    
+    print(f"Metrics uploaded to RDS table: {table_name}")
