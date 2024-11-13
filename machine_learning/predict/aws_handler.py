@@ -6,52 +6,43 @@ from botocore.exceptions import ClientError
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
+from psycopg2 import OperationalError
+from secrets_manager import get_secret
 
-def download_s3_object(s3_path, download_dir="/app/files"):
-    # Parse the S3 path
-    parsed_url = urlparse(s3_path)
-    
-    if parsed_url.scheme != 's3':
-        raise ValueError("Provided path is not a valid S3 path.")
-    
-    bucket_name = parsed_url.netloc
-    object_key = parsed_url.path.lstrip('/')
-    
-    os.makedirs(download_dir, exist_ok=True)
-    
-    # Define the local download path
-    filename = os.path.basename(object_key)
-    download_path = os.path.join(download_dir, filename)
-    
-    # Initialize the S3 client
-    s3 = boto3.client('s3')
-    
-    # Download the file
-    s3.download_file(bucket_name, object_key, download_path)
-    return {"status": "success", "message": f"Downloaded {s3_path} to {download_path}"}
+rds_secrets = get_secret("FRANKLIN_RDS")
+rds_database_name = rds_secrets["DB_NAME"]
+rds_database_user = rds_secrets["DB_USER"]
+rds_database_host = rds_secrets["DB_HOST"]
+rds_database_port = rds_secrets["DB_PORT"]
+rds_database_password = rds_secrets["DB_PASSWORD"]
 
-def upload_file_to_s3(local_file_path, s3_path):
-    # Parse the S3 path
-    parsed_url = urlparse(s3_path)
-    
-    if parsed_url.scheme != 's3':
-        raise ValueError("Provided path is not a valid S3 path.")
-    
-    bucket_name = parsed_url.netloc
-    object_key = parsed_url.path.lstrip('/')
-    
-    # Check if the file exists locally
-    if not os.path.isfile(local_file_path):
-        raise FileNotFoundError(f"The file {local_file_path} does not exist.")
-    
-    # Initialize the S3 client
-    s3 = boto3.client('s3')
-    
-    # Upload the file
-    s3.upload_file(local_file_path, bucket_name, object_key)
-    print(f"Uploaded {local_file_path} to {s3_path}")
-    return {"status": "success", "message": f"Uploaded {local_file_path} to {s3_path}"}
+def create_connection(db_name, db_user, db_password, db_host, db_port):
+    connection = None
+    try:
+        connection = psycopg2.connect(
+            database=db_name,
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+        )
+        print("Connection to PostgreSQL DB successful")
+    except OperationalError as e:
+        print(f"The error '{e}' occurred")
+    return connection
 
+def execute_query(conn, query):
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            result = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            return column_names, result
+    except psycopg2.Error as e:
+        print(f"Error executing query: {e}")
+        return None, None
+    finally:
+        conn.close()
 
 def upload_metrics_to_rds(metrics, hash_id, table_name, rds_connection_string):
     """
@@ -69,8 +60,14 @@ def upload_metrics_to_rds(metrics, hash_id, table_name, rds_connection_string):
     df['hash_id'] = hash_id
     
     # Establish connection to RDS
-    conn = psycopg2.connect(rds_connection_string)
-    cur = conn.cursor()
+    connection = create_connection(
+        "franklin_metrics", 
+        rds_database_user, 
+        rds_database_password, 
+        rds_database_host, 
+        rds_database_port
+    )
+    cur = connection.cursor()
     
     # Create the table if it doesn't exist
     cur.execute(f"""
@@ -85,10 +82,10 @@ def upload_metrics_to_rds(metrics, hash_id, table_name, rds_connection_string):
     cols = ', '.join(df.columns)
     
     execute_values(cur, f"INSERT INTO {table_name} ({cols}) VALUES %s", values)
-    conn.commit()
+    connection.commit()
     
     # Close the connection
     cur.close()
-    conn.close()
+    connection.close()
     
     print(f"Metrics uploaded to RDS table: {table_name}")

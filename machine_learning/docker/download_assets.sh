@@ -18,6 +18,7 @@ wget -O /app/predict.py https://raw.githubusercontent.com/JessAlchemab/FinalYear
 wget -O /app/analyse_metrics.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/analyse_metrics.py
 wget -O /app/utils.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/utils.py
 wget -O /app/aws_handler.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/aws_handler.py
+wget -O /app/secrets_manager.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/secrets_manager.py
 # Verify downloads
 if [ ! -d "/app/autoantibody_model" ]; then
     echo "Error: model not downloaded"
@@ -31,7 +32,11 @@ if [ ! -f "/app/utils.py" ]; then
     echo "Error: utils not downloaded"
     exit 1
 fi
-if [ ! -f "/app/utils.py" ]; then
+if [ ! -f "/app/aws_handler.py" ]; then
+    echo "Error: aws handler not downloaded"
+    exit 1
+fi
+if [ ! -f "/app/secrets_manager.py" ]; then
     echo "Error: aws handler not downloaded"
     exit 1
 fi

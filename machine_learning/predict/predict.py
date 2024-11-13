@@ -15,7 +15,6 @@ from transformers import (
 )
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
-from aws_handler import download_s3_object, upload_file_to_s3
 
 from sklearn.metrics import (
     roc_auc_score, 
