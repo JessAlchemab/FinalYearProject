@@ -133,13 +133,12 @@ if __name__ == "__main__":
     parser.add_argument('--quiet', '-q',
                        action='store_true',
                        help='Suppress printed output')
-    parser.add_argument('--connection_string', help='RDS connection string')
     
     args = parser.parse_args()
     try:
         metrics = analyze_antibody_data(args.file_path)
-        upload_metrics_to_rds(metrics, args.hash_id, args.rds_table, args.connection_string)
         if not args.quiet:
             print(format_metrics(metrics))
+        upload_metrics_to_rds(metrics, args.hash_id, args.rds_table)
     except Exception as e:
         print(f"Error analyzing file: {str(e)}")
