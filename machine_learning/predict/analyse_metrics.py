@@ -113,8 +113,7 @@ def format_metrics(metrics):
     # Histogram data
     if metrics['probability_histogram'] is not None:
         formatted += "\nHuman Probability Distribution:\n"
-        for bin_range, count in sorted(metrics['probability_histogram'].items()):
-            formatted += f"{bin_range}: {count}\n"
+        formatted += metrics['probability_histogram']
     
     return formatted
 
