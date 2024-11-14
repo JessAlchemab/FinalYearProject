@@ -79,7 +79,8 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
     
     # Insert the data into the table
     values = [tuple(row) for row in df.to_records(index=False)]
-    cols = ', '.join(df.columns)
+    print(df.columns)
+    cols = ', '.join(map(str, df.columns))
     
     execute_values(cur, f"INSERT INTO {table_name} ({cols}) VALUES %s", values)
     connection.commit()
