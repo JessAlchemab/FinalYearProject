@@ -93,8 +93,8 @@ def format_metrics(metrics):
     
     # V gene metrics
     formatted += "V Gene Metrics:\n"
-    formatted += f"IGHV3-34: {metrics['IGHV3-34_percentage']:.2f}%\n" if metrics['IGHV3-34_percentage'] is not None else "IGHV3-34: N/A\n"
-    formatted += f"IGHV3-30: {metrics['IGHV3-30_percentage']:.2f}%\n" if metrics['IGHV3-30_percentage'] is not None else "IGHV3-30: N/A\n\n"
+    formatted += f"IGHV3-34: {metrics['IGHV3_34_percentage']:.2f}%\n" if metrics['IGHV3_34_percentage'] is not None else "IGHV3-34: N/A\n"
+    formatted += f"IGHV3-30: {metrics['IGHV3_30_percentage']:.2f}%\n" if metrics['IGHV3_30_percentage'] is not None else "IGHV3-30: N/A\n\n"
     
     # Constant region metrics
     formatted += "Constant Region Metrics:\n"
