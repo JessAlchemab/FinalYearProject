@@ -138,6 +138,8 @@ if __name__ == "__main__":
         metrics = analyze_antibody_data(args.file_path)
         if not args.quiet:
             print(format_metrics(metrics))
+        print("METRICS")
+        print(metrics)
         upload_metrics_to_rds(metrics, args.hash_id, args.rds_table)
     except Exception as e:
         print(f"Error analyzing file: {str(e)}")
