@@ -9,7 +9,6 @@ process metrics_analysis {
         python3 /app/analyse_metrics.py \\
                --file_path ${annotated_file} \\
                --hash_id ${params.hash_id} \\
-               --rds_table ${params.rds_table} \\
-               --connection_string ${params.connection_string}
+               --rds_table ${params.rds_table} 
         """
 }

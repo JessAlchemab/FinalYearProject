@@ -44,7 +44,7 @@ def execute_query(conn, query):
     finally:
         conn.close()
 
-def upload_metrics_to_rds(metrics, hash_id, table_name, rds_connection_string):
+def upload_metrics_to_rds(metrics, hash_id, table_name):
     """
     Upload the metrics dictionary to an RDS table using the provided hash_id as the primary key.
     
@@ -68,14 +68,14 @@ def upload_metrics_to_rds(metrics, hash_id, table_name, rds_connection_string):
         rds_database_port
     )
     cur = connection.cursor()
-    
-    # Create the table if it doesn't exist
-    cur.execute(f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            hash_id VARCHAR(30) PRIMARY KEY,
-            {', '.join([f"{col} FLOAT" for col in df.columns])}
-        )
-    """)
+    print('table name:', table_name)
+    # # Create the table if it doesn't exist
+    # cur.execute(f"""
+    #     CREATE TABLE IF NOT EXISTS {table_name} (
+    #         hash_id VARCHAR(30) PRIMARY KEY,
+    #         {', '.join([f"{col} FLOAT" for col in df.columns])}
+    #     )
+    # """)
     
     # Insert the data into the table
     values = [tuple(row) for row in df.to_records(index=False)]
