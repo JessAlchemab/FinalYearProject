@@ -56,7 +56,7 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
     """
     # Convert metrics dictionary to a DataFrame with hash_id as the index
     print(metrics)
-    df = pd.DataFrame.from_dict(metrics, orient='index', columns=['metric', 'value'])
+    df = pd.DataFrame(list(metrics.items()), columns=['metric', 'values'])
     print(df)
     df['hash_id'] = hash_id
     print(df)
