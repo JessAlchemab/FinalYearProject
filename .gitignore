@@ -8,3 +8,4 @@ hf_dataset*
 test*
 datasetdict_tokenized_labelled.set*
 *__pycache__*
+# *.nextflow*

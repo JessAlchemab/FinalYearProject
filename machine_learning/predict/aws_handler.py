@@ -56,8 +56,10 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
     """
     # Convert metrics dictionary to a DataFrame with hash_id as the index
     print(metrics)
-    df = pd.DataFrame(list(metrics.items()), columns=['metric', 'values'])
-    print(df)
+    # df = pd.DataFrame(list(metrics.items()), columns=['metric', 'values'])
+    df = pd.DataFrame([metrics])
+    
+    
     df['hash_id'] = hash_id
     print(df)
     
@@ -69,26 +71,52 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
         rds_database_host, 
         rds_database_port
     )
-    cur = connection.cursor()
-    print('table name:', table_name)
-    # # Create the table if it doesn't exist
-    # cur.execute(f"""
-    #     CREATE TABLE IF NOT EXISTS {table_name} (
-    #         hash_id VARCHAR(30) PRIMARY KEY,
-    #         {', '.join([f"{col} FLOAT" for col in df.columns])}
-    #     )
-    # """)
-    
-    # Insert the data into the table
-    values = [tuple(row) for row in df.to_records(index=False)]
-    print(df.columns)
-    cols = ', '.join(map(str, df.columns))
-    
-    execute_values(cur, f"INSERT INTO {table_name} ({cols}) VALUES %s", values)
+    cursor = connection.cursor()
+
+    # Insert data into PostgreSQL table
+    insert_query = """
+        INSERT INTO autoantibody_dev (
+            hash_id,
+            total_rows,
+            IGHV4_34_percentage,
+            IGHV3_30_percentage,
+            IGHG_percentage,
+            IGHG1_percentage,
+            IGHG2_percentage,
+            IGHG3_percentage,
+            IGHG4_percentage,
+            average_cdr3_length,
+            average_mu_count,
+            human_prediction_percentage,
+            probability_histogram
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    # Assuming 'hash_id' is provided separately
+
+    # Insert each row in the DataFrame
+    for _, row in df.iterrows():
+        cursor.execute(insert_query, (
+            hash_id,
+            row['total_rows'],
+            row['IGHV4_34_percentage'],
+            row['IGHV3_30_percentage'],
+            row['IGHG_percentage'],
+            row['IGHG1_percentage'],
+            row['IGHG2_percentage'],
+            row['IGHG3_percentage'],
+            row['IGHG4_percentage'],
+            row['average_cdr3_length'],
+            row['average_mu_count'],
+            row['human_prediction_percentage'],
+            row['probability_histogram']
+        ))
+
+    # Commit the transaction
     connection.commit()
-    
-    # Close the connection
-    cur.close()
+
+    # Close the cursor and connection
+    cursor.close()
     connection.close()
     
     print(f"Metrics uploaded to RDS table: {table_name}")

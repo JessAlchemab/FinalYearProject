@@ -3,7 +3,7 @@
 FROM mambaorg/micromamba:1-focal-cuda-11.7.1
 USER root
 COPY --chown=$MAMBA_USER:$MAMBA_USER env.yaml /tmp/env.yaml
-RUN micromamba install -y -n predict -f /tmp/env.yaml && \
+RUN micromamba create -y -n predict -f /tmp/env.yaml && \
     micromamba clean --all --yes && \
     rm -f /tmp/env.yaml
 # Install necessary dependencies
@@ -36,13 +36,13 @@ RUN eval "$(micromamba shell hook --shell bash) "
 ENV CONDA_PREFIX /opt/micromamba/envs/predict
 ENV PATH "$CONDA_PREFIX/bin:$PATH"
 # RUN /bin/bash -c micromamba activate predict
-RUN pip --no-cache-dir install --upgrade awscli
+COPY requirements.txt /tmp/
 
 # Copy requirements and install dependencies
-COPY requirements.txt /tmp/
-RUN pip install -r requirements.txt && \
-    pip clean && \
-    rm /tmp/requirements.txt
+RUN pip --no-cache-dir install --upgrade pip && \
+    pip --no-cache-dir install --upgrade awscli && \
+    pip install -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
 
 # Set the working directory
 WORKDIR /app
@@ -61,3 +61,11 @@ RUN chmod +x /app/download_assets.sh && /app/download_assets.sh
 #     "]
     
 #docker run -e ENABLE_CUDA=1 -e INPUT_FILE=s3://alchemab-scratch/jess_scratch/autoantibody_classifier/inputs/SE_0000222.tsv -e OUTPUT_FILE=SE_0000222.tsv --rm --gpus all -it autoantibody_classifier:latest
+
+# Build and push commands
+#docker build --no-cache . -t autoantibody_classifier:latest
+# aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 189545766043.dkr.ecr.eu-west-2.amazonaws.com
+##password=$(aws ecr get-login-password --region eu-west-2)
+##echo $password | docker login --username AWS --password-stdin 189545766043.dkr.ecr.eu-west-2.amazonaws.com
+#docker tag autoantibody_classifier:latest 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
+#docker push 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
