@@ -1,6 +1,9 @@
-process predict_autoantibody {
-    container "189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest"
-    label 'gpu'  // Add this line to apply GPU configuration
+process PREDICT_AUTOANTIBODY {
+    if (params.with_gpu) {
+        container '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_gpu:latest'
+    } else {
+        container '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_cpu:latest'
+    }
 
     input:
         // path input_file
@@ -15,6 +18,7 @@ process predict_autoantibody {
         """
         torchrun --nproc_per_node=1 \\
         /app/predict.py \\
+        ${args} \\
         --input_path "${input_file}" \\
         --output_file "autoantibody_annotated.${file_id}.tsv" \\
         --tokenizer_path /app/autoantibody_model/tokenizers \\

@@ -1,5 +1,5 @@
-process metrics_analysis {
-    container "189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest"
+process METRICS_ANALYSIS {
+    container "189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_cpu:latest"
     
     input:
         tuple val(file_id), path(annotated_file)

@@ -10,6 +10,8 @@ echo "Starting download of assets from S3..."
 echo "Downloading predict.py..."
 aws s3 cp --recursive s3://alchemab-ml/autoantibody_model /app/autoantibody_model
 
+
+
 # Download predict script
 touch /app/predict.py
 touch /app/utils.py

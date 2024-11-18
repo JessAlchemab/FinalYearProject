@@ -47,6 +47,7 @@ RUN pip --no-cache-dir install --upgrade pip && \
 # Set the working directory
 WORKDIR /app
 
+
 # Get the model and the predict.py script
 COPY download_assets.sh /app/
 RUN chmod +x /app/download_assets.sh && /app/download_assets.sh
