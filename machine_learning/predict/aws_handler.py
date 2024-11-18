@@ -90,7 +90,7 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
             average_mu_count,
             human_prediction_percentage,
             probability_histogram
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     # Assuming 'hash_id' is provided separately
