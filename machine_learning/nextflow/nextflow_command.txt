@@ -1,0 +1,9 @@
+nextflow run main.nf \
+    -profile docker \
+    --runtime=nvidia \
+    --hash_id final_test \
+    --input_file_path s3://alchemab-scratch/jess_scratch/autoantibody_classifier/inputs/SE_0000222.tsv \
+    --outdir 's3://alchemab-scratch/jess_scratch/autoantibody_classifier/outputs' \
+    --stage dev \
+    --with_gpu true \
+    --awsgpuqueue ''
