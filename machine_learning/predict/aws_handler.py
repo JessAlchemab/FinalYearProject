@@ -78,6 +78,7 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
         INSERT INTO autoantibody_dev (
             hash_id,
             total_rows,
+            human_rows,
             IGHV4_34_percentage,
             IGHV3_30_percentage,
             IGHG_percentage,
@@ -99,6 +100,7 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
         cursor.execute(insert_query, (
             hash_id,
             row['total_rows'],
+            row['human_rows'],
             row['IGHV4_34_percentage'],
             row['IGHV3_30_percentage'],
             row['IGHG_percentage'],

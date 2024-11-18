@@ -28,7 +28,8 @@ def analyze_antibody_data(file_path):
     
     # Store total number of rows
     metrics['total_rows'] = len(df)
-    
+    metrics['human_rows'] = (df['prediction'] == 'human').sum()
+
     # V gene metrics
     if 'v_call' in df.columns:
         metrics['IGHV4_34_percentage'] = (df['v_call'].str.contains('IGHV4-34', na=False) * 100).mean()
@@ -90,7 +91,8 @@ def format_metrics(metrics):
     """
     formatted = "Analysis Results:\n"
     formatted += f"Total rows: {metrics['total_rows']}\n\n"
-    
+    formatted += f"Human rows: {metrics['human_rows']}\n\n"
+
     # V gene metrics
     formatted += "V Gene Metrics:\n"
     formatted += f"IGHV4-34: {metrics['IGHV4_34_percentage']:.2f}%\n" if metrics['IGHV4_34_percentage'] is not None else "IGHV4-34: N/A\n"
