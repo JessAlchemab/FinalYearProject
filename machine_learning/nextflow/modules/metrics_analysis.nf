@@ -2,8 +2,8 @@ process metrics_analysis {
     container "189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest"
     
     input:
-        // path annotated_file
         tuple val(file_id), path(annotated_file)
+        
     script:
         println "Metrics analysis input file: ${annotated_file}" // Debug log
         """
