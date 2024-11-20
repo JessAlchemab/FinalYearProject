@@ -5,6 +5,8 @@ process PREDICT_AUTOANTIBODY {
         container '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_cpu:latest'
     }
 
+    beforeScript 'echo "Using container: $CONTAINER"'
+
     input:
         // path input_file
         tuple val(file_id), path(input_file)
@@ -13,8 +15,11 @@ process PREDICT_AUTOANTIBODY {
         tuple val(file_id), path("autoantibody_annotated.${file_id}.tsv"), emit: output_file
     script:
         println "Input file: ${input_file}" // Log the input_file value
+        println "Using container: ${task.container}"
+        println "Using args: ${task.ext.args}"
 
-        def args = task.ext.args ?: ''
+        def args = task.ext.args ? task.ext.args.join(' ') : ''
+
         """
         torchrun --nproc_per_node=1 \\
         /app/predict.py \\
