@@ -8,6 +8,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 from psycopg2 import OperationalError
 from secrets_manager import get_secret
+import datetime
 
 rds_secrets = get_secret("FRANKLIN_RDS")
 rds_database_name = rds_secrets["DB_NAME"]
@@ -77,6 +78,7 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
     insert_query = """
         INSERT INTO autoantibody_dev (
             hash_id,
+            date,
             total_rows,
             human_rows,
             IGHV4_34_percentage,
@@ -90,15 +92,18 @@ def upload_metrics_to_rds(metrics, hash_id, table_name):
             average_mu_count,
             human_prediction_percentage,
             probability_histogram
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     # Assuming 'hash_id' is provided separately
 
     # Insert each row in the DataFrame
+    date = datetime.datetime.now()
+
     for _, row in df.iterrows():
         cursor.execute(insert_query, (
             hash_id,
+            date,
             row['total_rows'],
             row['human_rows'],
             row['IGHV4_34_percentage'],
