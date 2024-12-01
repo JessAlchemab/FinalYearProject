@@ -1,9 +1,5 @@
 process PREDICT_AUTOANTIBODY {
-    if (params.with_gpu) {
-        container '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_gpu:latest'
-    } else {
-        container '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_cpu:latest'
-    }
+    container '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest'
 
     beforeScript 'echo "Using container: $CONTAINER"'
 

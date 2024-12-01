@@ -1,8 +1,9 @@
 *.parquet
-*.json
 *.csv
 *.tsv
 .env
+*.env-local
+*.env-prod
 trained_model*
 hf_dataset*
 test*
@@ -10,3 +11,5 @@ datasetdict_tokenized_labelled.set*
 *__pycache__*
 *.nextflow*
 */nextflow/work*
+*/node_modules/*
+autoantibody_app/api/node_modules

@@ -79,18 +79,16 @@ def predict_gpu(
         available_columns=dataset_to_predict.columns
 
         if 'sequence_vh' in available_columns:
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
-            original_columns = dataset_to_predict.copy()
-
-        elif 'sequence_alignment' in available_columns and 'germline_alignment_d_mask' in available_columns:
+            raise NameError('tsv file already has sequence_vh column. Please remove it to continue')
+        elif 'sequence_alignment' not in available_columns and 'germline_alignment_d_mask' not in available_columns:
+            raise NameError('tsv file must have sequence_alignment and germline_alignment_d_mask columns') 
+        else: 
             dataset_to_predict['sequence_vh'] = dataset_to_predict.apply(
             lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
             axis=1
             )
             dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
             original_columns = dataset_to_predict.copy()
-        else: 
-            raise NameError('tsv file must have sequence_alignment and germline_alignment_d_mask columns, or sequence_vh column with fully backfilled') 
 
     # dataset_to_predict['sequence']='Ḣ'+dataset_to_predict['sequence_vh']
     
@@ -203,24 +201,22 @@ def predict_cpu(
     
     elif input_path.endswith('.tsv') or input_path.endswith('.parquet'):
         if input_path.endswith('.tsv'):
-            dataset_to_predict=pd.read_csv(input_path, sep='\t')
+            dataset_to_predict = pd.read_csv(input_path, sep='\t')
         else:
-            dataset_to_predict=pd.read_parquet(input_path)
-        available_columns=dataset_to_predict.columns
+            dataset_to_predict = pd.read_parquet(input_path)
+        available_columns = dataset_to_predict.columns
 
         if 'sequence_vh' in available_columns:
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
-            original_columns = dataset_to_predict.copy()
-
-        elif 'sequence_alignment' in available_columns and 'germline_alignment_d_mask' in available_columns:
+            raise NameError('tsv file already has sequence_vh column. Please remove it to continue')
+        elif 'sequence_alignment' not in available_columns and 'germline_alignment_d_mask' not in available_columns:
+            raise NameError('tsv file must have sequence_alignment and germline_alignment_d_mask columns') 
+        else: 
             dataset_to_predict['sequence_vh'] = dataset_to_predict.apply(
             lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
             axis=1
             )
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+            dataset_to_predict['fabcon_sequence'] = 'Ḣ'+dataset_to_predict['sequence_vh']
             original_columns = dataset_to_predict.copy()
-        else: 
-            raise NameError('tsv file must have sequence_alignment and germline_alignment_d_mask columns, or sequence_vh column with fully backfilled') 
     
     tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
 

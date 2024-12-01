@@ -1,0 +1,28 @@
+.invisible-button {
+  background-color: transparent !important; /* No background color */
+  border: none !important; /* No border */
+  outline: none !important; /* No outline */
+  box-shadow: none !important; /* No box shadow */
+  color: inherit; /* Inherit text color */
+  position: relative; /* Prevent ripple effects */
+  overflow: hidden; /* Prevent ripple effects */
+  font-size: 2em;
+  padding: 0.1rem;
+  padding-left: 1rem;
+}
+
+/* Remove hover, focus, and active visual effects */
+.invisible-button:hover,
+.invisible-button:focus,
+.invisible-button:active,
+.invisible-button:focus-visible {
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Disable Ant Design's click ripple effect */
+.invisible-button .ant-btn-click-anim {
+  display: none !important;
+}

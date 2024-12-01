@@ -49,8 +49,15 @@ WORKDIR /app
 
 
 # Get the model and the predict.py script
-COPY download_assets.sh /app/
-RUN chmod +x /app/download_assets.sh && /app/download_assets.sh
+# COPY download_assets.sh /app/
+# RUN chmod +x /app/download_assets.sh && /app/download_assets.sh
+
+COPY temporary/autoantibody_model /app/autoantibody_model
+COPY temporary/predict.py /app/predict.py
+COPY temporary/utils.py /app/utils.py
+COPY temporary/aws_handler.py /app/aws_handler.py
+COPY temporary/analyse_metrics.py /app/analyse_metrics.py
+COPY temporary/secrets_manager.py /app/secrets_manager.py
 
 # On initialising the container make it run the script(?)
 # ENTRYPOINT ["/bin/bash", "-c", "torchrun --nproc_per_node=1 /app/predict.py \

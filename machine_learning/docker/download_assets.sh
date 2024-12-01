@@ -7,8 +7,9 @@ set -e
 echo "Starting download of assets from S3..."
 
 # Download model and tokenizers
-echo "Downloading predict.py..."
+echo "Downloading model..."
 aws s3 cp --recursive s3://alchemab-ml/autoantibody_model /app/autoantibody_model
+
 
 
 
