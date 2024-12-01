@@ -1,0 +1,19 @@
+{
+  "environment": "production",
+  "basespace_secret": "BASESPACE_PRODUCTION",
+  "benchling_secret": "BENCHLING_PRODUCTION",
+  "benchling_datawarehouse_secret": "BENCHLING_DATA_WAREHOUSE_PRODUCTION",
+  "pg_sslrootcert": "assets/rds-ca-2019-root.pem",
+  "ydbfd_inputs_dir": "s3://alchemab-bfd-yeastdisplay-production/inputs",
+  "seq_data_dir": "s3://alchemab-seq",
+  "old_results_dir": "s3://alchemab-pipeline-production/output",
+  "nf_inputsdir": "s3://alchemab-pipeline-results-production/inputs",
+  "nf_outputsdir": "s3://alchemab-pipeline-results-production/outputs",
+  "nf_logsdir": "s3://alchemab-pipeline-results-production/_nextflow/logs",
+  "nf_workdir": "s3://alchemab-pipeline-results-production/_nextflow/runs",
+  "region": "eu-west-2",
+  "job_definition": "nf-batch-head-master",
+  "master_queue": "bioinformatics-standard-queue",
+  "default_pipeline_queue": "bioinformatics-standard-queue",
+  "gpu_pipeline_queue": "bioinformatics-gpu-queue"
+}

@@ -1,0 +1,219 @@
+service: autoantibody-api
+frameworkVersion: "3"
+
+plugins:
+  - serverless-better-credentials
+  - serverless-python-requirements
+  - serverless-offline
+
+useDotenv: true
+
+package:
+  individually: true
+  patterns:
+    - "requirements.txt"
+    - "functions/**"
+
+# custom:
+#   stage: ${opt:stage, 'dev'}
+#   pythonRequirements:
+#     dockerizePip: true
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    lambdaPort: 3002
+    # Add these configurations
+    docker: true
+    host: "0.0.0.0"
+    useChildProcesses: true
+
+# resources:
+#   - ${file(resources/vpc.yml)}
+#   - ${file(resources/policies.yml)}
+resources:
+  - ${file(resources/api-gateway-errors.yml)}
+  - ${file(resources/vpc.yml)}
+  - ${file(resources/policies.yml)}
+  - ${file(resources/api-gateway-authorizer.yml)}
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  runtime: python3.8
+  region: eu-west-2
+  iam:
+    role: !GetAtt LambdaExecutionRoleWaffles.Arn
+  endpointType: PRIVATE
+  # vpcEndpointIds:
+  #   - vpce-0433c0454374657a5
+  # vpc:
+  #   securityGroupIds:
+  #     - !Ref ApiGatewaySecurityGroup
+  #   subnetIds:
+  #     - ${env:VPC_SUBNET_A}
+  #     - ${env:VPC_SUBNET_B}
+  # apiGateway:
+  #   resourcePolicy:
+  #     - Sid: allow-read-only-from-vpc
+  #       Effect: Allow
+  #       Principal: "*"
+  #       Action: "execute-api:Invoke"
+  #       Resource: "execute-api:/*"
+  #       Condition:
+  #         StringEquals:
+  #           "aws:sourceVpc": ${env:VPC_ID}
+
+  ecr:
+    images:
+      classify-small-image:
+        uri: 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
+
+functions:
+  # s3-list-files:
+  #   handler: functions/s3_files_handler/handler.list_files
+  #   timeout: 20
+  #   environment:
+  #     ALCHELIGN_INPUT_S3_BUCKET: ${env:ALCHELIGN_INPUT_S3_BUCKET}
+  #   events:
+  #     - http:
+  #         path: s3-list-files
+  #         method: get
+  #         cors:
+  #           origins:
+  #             - "*"
+  #           headers:
+  #             - Content-Type
+  #             - Authorization
+  #             - x-access-token
+  #           allowCredentials: true
+  #         authorizer:
+  #           type: COGNITO_USER_POOLS
+  #           authorizerId:
+  #             Ref: ApiGatewayAuthorizer
+
+  # s3-get-file:
+  #   handler: functions/s3_files_handler/handler.get_file_url
+  #   timeout: 20
+  #   environment:
+  #     ALCHELIGN_INPUT_S3_BUCKET: ${env:ALCHELIGN_INPUT_S3_BUCKET}
+  #   events:
+  #     - http:
+  #         path: s3-get-file
+  #         method: get
+  #         cors:
+  #           origins:
+  #             - "*"
+  #           headers:
+  #             - Content-Type
+  #             - Authorization
+  #             - x-access-token
+  #           allowCredentials: true
+  #         authorizer:
+  #           type: COGNITO_USER_POOLS
+  #           authorizerId:
+  #             Ref: ApiGatewayAuthorizer
+
+  get-upload-url:
+    handler: functions/s3_files_handler/handler.get_upload_url
+    timeout: 20
+    environment:
+      AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
+    events:
+      - http:
+          path: get-upload-url
+          method: get
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+
+  submit-pipeline:
+    handler: functions/job-submit/submit_job.lambda_handler
+    timeout: 30
+    environment:
+      STAGE: ${env:STAGE}
+      NF_INPUTSDIR: ${env:NF_INPUTSDIR}
+      NF_OUTPUTSDIR: ${env:NF_OUTPUTSDIR}
+      NF_LOGSDIR: ${env:NF_LOGSDIR}
+      NF_WORKDIR: ${env:NF_WORKDIR}
+      REGION: ${env:REGION}
+      JOB_DEFINITION: ${env:JOB_DEFINITION}
+      MASTER_QUEUE: ${env:MASTER_QUEUE}
+      GPU_QUEUE: ${env:GPU_PIPELINE_QUEUE}
+    events:
+      - http:
+          path: submit-pipeline
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+
+  get-runs:
+    handler: functions/contact-rds/handler.retrieve_runs
+    timeout: 30
+    events:
+      - http:
+          path: get-runs
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+
+  get-run-data:
+    handler: functions/contact-rds/handler.get_run_data
+    timeout: 30
+    events:
+      - http:
+          path: get-run-data
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+
+  classify-small:
+    image:
+      name: classify-small-image
+      command:
+        - "/var/task/functions/classify-small/handler.py" # Replace with your actual handler
+      # entrypoint:
+      #   - "/usr/bin/python3"
+    handler: functions/classify-small/handler.lambda_handler # Updated this line
+    timeout: 300
+    memorySize: 2048
+    environment:
+      PYTHONPATH: /var/task:/app
+      MODEL_PATH: /app/autoantibody_model/trained_model/classifier-model
+      TOKENIZER_PATH: /app/autoantibody_model/tokenizers
+      IS_LOCAL: true
+    events:
+      - http:
+          path: classify-small
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true

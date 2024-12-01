@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "serverless-better-credentials": "^2.0.0",
+    "serverless-offline": "^14.3.4",
+    "serverless-python-requirements": "^6.1.1"
+  },
+  "dependencies": {
+    "serverless": "^4.4.11"
+  }
+}

@@ -1,0 +1,30 @@
+Resources:
+  # ApiGatewayVpcEndpoint:
+  #   Type: AWS::EC2::VPCEndpoint
+  #   Properties:
+  #     VpcId: ${env:VPC_ID}
+  #     ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
+  #     VpcEndpointType: Interface
+  #     PrivateDnsEnabled: true
+  #     SubnetIds:
+  #       - ${env:VPC_SUBNET_A}
+  #       - ${env:VPC_SUBNET_B}
+  #     SecurityGroupIds:
+  #       - !Ref ApiGatewaySecurityGroup
+
+  ApiGatewaySecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupName: api-gateway-security-group-dev
+          GroupDescription: Security group for API Gateway VPC endpoint
+          VpcId: ${env:VPC_ID}
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 443
+              ToPort: 443
+              CidrIp: ${env:VPC_CIDR}
+          SecurityGroupEgress:
+            - IpProtocol: tcp
+              FromPort: 443
+              ToPort: 443
+              CidrIp: 0.0.0.0/0
