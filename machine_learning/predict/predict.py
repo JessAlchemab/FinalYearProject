@@ -58,42 +58,50 @@ def predict_gpu(
           world_size)
 
     if input_path.endswith('.csv'):
-        #LOAD DATASET
-        dataset_to_predict=pd.read_csv(input_path)
+        # LOAD DATASET
+        dataset_to_predict = pd.read_csv(input_path)
 
-        available_columns=dataset_to_predict.columns
-        dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+        available_columns = dataset_to_predict.columns
+        dataset_to_predict['fabcon_sequence'] = 'Ḣ' + dataset_to_predict['sequence_vh']
         original_columns = dataset_to_predict.copy()
+        
+        # DEDUPLICATE UNIQUE SEQUENCES
+        dataset_to_predict_deduplicated = dataset_to_predict.drop_duplicates(subset=['fabcon_sequence'])
+        
         if 'label' in available_columns:
-            dataset_to_predict=dataset_to_predict[['fabcon_sequence','label']].copy()
-            dataset_to_predict['label'] = dataset_to_predict['label'].astype(int)
+            dataset_to_predict_deduplicated = dataset_to_predict_deduplicated[['fabcon_sequence','label']].copy()
+            dataset_to_predict_deduplicated['label'] = dataset_to_predict_deduplicated['label'].astype(int)
         else:
-            dataset_to_predict=dataset_to_predict[['fabcon_sequence']].copy()
+            dataset_to_predict_deduplicated = dataset_to_predict_deduplicated[['fabcon_sequence']].copy()
     
-    # output from pipeline is tsv files
+    # Similar modification for .tsv and .parquet files
     elif input_path.endswith('.tsv') or input_path.endswith('.parquet'):
         if input_path.endswith('.tsv'):
-            dataset_to_predict=pd.read_csv(input_path, sep='\t')
+            dataset_to_predict = pd.read_csv(input_path, sep='\t')
         else:
-            dataset_to_predict=pd.read_parquet(input_path)
-        available_columns=dataset_to_predict.columns
+            dataset_to_predict = pd.read_parquet(input_path)
+        available_columns = dataset_to_predict.columns
 
         if 'sequence_vh' in available_columns:
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+            dataset_to_predict['fabcon_sequence'] = 'Ḣ' + dataset_to_predict['sequence_vh']
             original_columns = dataset_to_predict.copy()
+            
+            # DEDUPLICATE UNIQUE SEQUENCES
+            dataset_to_predict_deduplicated = dataset_to_predict.drop_duplicates(subset=['fabcon_sequence'])
 
         elif 'sequence_alignment' in available_columns and 'germline_alignment_d_mask' in available_columns:
             dataset_to_predict['sequence_vh'] = dataset_to_predict.apply(
-            lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
-            axis=1
+                lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
+                axis=1
             )
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+            dataset_to_predict['fabcon_sequence'] = 'Ḣ' + dataset_to_predict['sequence_vh']
             original_columns = dataset_to_predict.copy()
+            
+            # DEDUPLICATE UNIQUE SEQUENCES
+            dataset_to_predict_deduplicated = dataset_to_predict.drop_duplicates(subset=['fabcon_sequence'])
         else: 
             raise NameError('tsv file must have sequence_alignment and germline_alignment_d_mask columns, or sequence_vh column with fully backfilled') 
 
-    # dataset_to_predict['sequence']='Ḣ'+dataset_to_predict['sequence_vh']
-    
     tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
 
     def collate_fn(text, tokenizer=tokenizer):
@@ -106,10 +114,11 @@ def predict_gpu(
         )
         tokenized_input['text'] = text
         return tokenized_input
+    
     model = FalconForSequenceClassification.from_pretrained(model_path).to(local_rank)
     model = DDP(model, device_ids=[local_rank])
 
-    sequences = dataset_to_predict['fabcon_sequence'].unique().tolist()
+    sequences = dataset_to_predict_deduplicated['fabcon_sequence'].unique().tolist()
 
     dataset = AntibodyRepertoireDataset(sequences)
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=local_rank)
@@ -133,17 +142,18 @@ def predict_gpu(
             # probabilities are stored in probs
             human_probabilities.extend(probs)
             sequences.extend(batch['text'])
+    
     output_df = pd.DataFrame({
         'sequence_vh': sequences,
         'human_probability': human_probabilities
     })
 
     merged_df = original_columns.merge(
-    output_df,
-    left_on='fabcon_sequence',
-    right_on='sequence_vh',
-    how='left'
-)
+        output_df,
+        left_on='fabcon_sequence',
+        right_on='sequence_vh',
+        how='left'
+    )
 
     # Define conditions
     conditions = [
@@ -153,12 +163,12 @@ def predict_gpu(
     # Define choices for each condition
     choices = ['human']
 
-    # Apply conditions to create 'human_viral_prediction' column
+    # Apply conditions to create 'prediction' column
     merged_df['prediction'] = np.select(
         conditions, choices, default=""
     )
-    # file_path = input_path.split("/")[:-1].join("/")
 
+    # Save output file
     if output_file.endswith('.csv'):
         merged_df.to_csv(output_file, index=None)
     elif output_file.endswith('.tsv'):
@@ -169,17 +179,17 @@ def predict_gpu(
         sys.exit('File extension not recognised. Please choose one of .csv, .tsv, or .parquet')
         
     if 'label' in available_columns:
-        labels=merged_df['label'].values
-        probs=merged_df['human_probability'].values
-        probs_binary=[1 if x>0.5 else 0 for x in probs]
-        auc=roc_auc_score(labels, probs)
-        aupr=average_precision_score(labels, probs)
-        f1=f1_score(labels,probs_binary)
-        precision=precision_score(labels,probs_binary)
-        recall=recall_score(labels,probs_binary)
+        labels = merged_df['label'].values
+        probs = merged_df['human_probability'].values
+        probs_binary = [1 if x > 0.5 else 0 for x in probs]
+        auc = roc_auc_score(labels, probs)
+        aupr = average_precision_score(labels, probs)
+        f1 = f1_score(labels, probs_binary)
+        precision = precision_score(labels, probs_binary)
+        recall = recall_score(labels, probs_binary)
         mcc = matthews_corrcoef(labels, probs_binary)
         
-        print('roc_auc:',auc,'average_precision_score',aupr,'f1:',f1,'precision:',precision,'recall:',recall,'mcc',mcc)
+        print('roc_auc:', auc, 'average_precision_score', aupr, 'f1:', f1, 'precision:', precision, 'recall:', recall, 'mcc', mcc)
 
     cleanup()
 
@@ -195,30 +205,40 @@ def predict_cpu(
         available_columns = dataset_to_predict.columns
         dataset_to_predict['fabcon_sequence'] = 'Ḣ'+dataset_to_predict['sequence_vh']
         original_columns = dataset_to_predict.copy()
+        
+        # DEDUPLICATE UNIQUE SEQUENCES
+        dataset_to_predict_deduplicated = dataset_to_predict.drop_duplicates(subset=['fabcon_sequence'])
+        
         if 'label' in available_columns:
-            dataset_to_predict = dataset_to_predict[['fabcon_sequence','label']].copy()
-            dataset_to_predict['label'] = dataset_to_predict['label'].astype(int)
+            dataset_to_predict_deduplicated = dataset_to_predict_deduplicated[['fabcon_sequence','label']].copy()
+            dataset_to_predict_deduplicated['label'] = dataset_to_predict_deduplicated['label'].astype(int)
         else:
-            dataset_to_predict = dataset_to_predict[['fabcon_sequence']].copy()
+            dataset_to_predict_deduplicated = dataset_to_predict_deduplicated[['fabcon_sequence']].copy()
     
     elif input_path.endswith('.tsv') or input_path.endswith('.parquet'):
         if input_path.endswith('.tsv'):
-            dataset_to_predict=pd.read_csv(input_path, sep='\t')
+            dataset_to_predict = pd.read_csv(input_path, sep='\t')
         else:
-            dataset_to_predict=pd.read_parquet(input_path)
-        available_columns=dataset_to_predict.columns
+            dataset_to_predict = pd.read_parquet(input_path)
+        available_columns = dataset_to_predict.columns
 
         if 'sequence_vh' in available_columns:
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+            dataset_to_predict['fabcon_sequence'] = 'Ḣ'+dataset_to_predict['sequence_vh']
             original_columns = dataset_to_predict.copy()
+            
+            # DEDUPLICATE UNIQUE SEQUENCES
+            dataset_to_predict_deduplicated = dataset_to_predict.drop_duplicates(subset=['fabcon_sequence'])
 
         elif 'sequence_alignment' in available_columns and 'germline_alignment_d_mask' in available_columns:
             dataset_to_predict['sequence_vh'] = dataset_to_predict.apply(
             lambda row: get_full_aa_sub(str(row['sequence_alignment']), str(row['germline_alignment_d_mask'])), 
             axis=1
             )
-            dataset_to_predict['fabcon_sequence']='Ḣ'+dataset_to_predict['sequence_vh']
+            dataset_to_predict['fabcon_sequence'] = 'Ḣ'+dataset_to_predict['sequence_vh']
             original_columns = dataset_to_predict.copy()
+            
+            # DEDUPLICATE UNIQUE SEQUENCES
+            dataset_to_predict_deduplicated = dataset_to_predict.drop_duplicates(subset=['fabcon_sequence'])
         else: 
             raise NameError('tsv file must have sequence_alignment and germline_alignment_d_mask columns, or sequence_vh column with fully backfilled') 
     
@@ -237,7 +257,7 @@ def predict_cpu(
     device = torch.device('cpu')
     model = FalconForSequenceClassification.from_pretrained(model_path).to(device)
 
-    sequences = dataset_to_predict['fabcon_sequence'].unique().tolist()
+    sequences = dataset_to_predict_deduplicated['fabcon_sequence'].unique().tolist()
 
     dataset = AntibodyRepertoireDataset(sequences)
 
@@ -266,11 +286,11 @@ def predict_cpu(
     })
 
     merged_df = original_columns.merge(
-    output_df,
-    left_on='fabcon_sequence',
-    right_on='sequence_vh',
-    how='left'
-)
+        output_df,
+        left_on='fabcon_sequence',
+        right_on='sequence_vh',
+        how='left'
+    )
 
     # Define conditions
     conditions = [
@@ -306,8 +326,6 @@ def predict_cpu(
         mcc = matthews_corrcoef(labels, probs_binary)
         
         print('roc_auc:',auc,'average_precision_score',aupr,'f1:',f1,'precision:',precision,'recall:',recall,'mcc',mcc)
-    
-
 def main(
     input_path: str,
     output_file: str,
