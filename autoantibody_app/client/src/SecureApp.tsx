@@ -58,7 +58,8 @@ export default function SecureApp() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            height: "100%",
+            height: "100vh",
+            width: "100vw",
           }}
         >
           <Spin size="large" style={{ fontSize: "1.5rem" }} />

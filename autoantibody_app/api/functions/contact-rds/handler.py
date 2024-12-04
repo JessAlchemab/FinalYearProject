@@ -9,6 +9,23 @@ database_host = secrets["DB_HOST"]
 database_port = secrets["DB_PORT"]
 database_password = secrets["DB_PASSWORD"]
 
+def parse_sql_hash(headers, rows):
+    row = rows[0]
+    # This makes the SQL query results into a nice format for the frontend
+    container_dict = {}
+    for header in headers:
+        container_dict[header] = row[headers.index(header)]
+    return container_dict
+
+def parse_sql_runs(headers, rows):
+    # This makes the SQL query results into a nice format for the frontend
+    container_list = []
+    for row in rows:
+        hash_id_loc = headers.index('hash_id')
+        date_loc = headers.index('date')
+        container_list.append({"hash_id": row[hash_id_loc], "date": row[date_loc]})
+    return container_list
+
 def retrieve_runs(event, context):
     body = json.loads(event.get('body', '{}'))
 
@@ -28,15 +45,22 @@ def retrieve_runs(event, context):
     rows = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
     cursor.close()
-    print(rows)
-    print(column_names)
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+           "data": parse_sql_runs(column_names, rows)
+        }),
+        "headers": {"Access-Control-Allow-Origin": "*"}
+    }
 
-def get_run_data(run):
+def get_run_data(event, context):
+    body = json.loads(event.get('body', '{}'))
+    run = body.get('name', {})
+
     connection = create_connection(
     "franklin_metrics", database_user, database_password, database_host, database_port
 )
     cursor = connection.cursor()
-
     query = f"""
         SELECT * FROM autoantibody_dev
         WHERE hash_id = '{run}'
@@ -45,5 +69,11 @@ def get_run_data(run):
     rows = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
     cursor.close()
-    print(rows)
-    print(column_names)
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+           "data": parse_sql_hash(column_names, rows)
+        }),
+        "headers": {"Access-Control-Allow-Origin": "*"}
+    }
+

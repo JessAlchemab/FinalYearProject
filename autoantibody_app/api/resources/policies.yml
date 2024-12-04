@@ -2,9 +2,9 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: LambdaExecutionRole
+      RoleName: LambdaExecutionRoleAutoantibody${self:provider.stage}
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -21,12 +21,12 @@ Resources:
                   - "logs:CreateLogStream"
                   - "logs:CreateLogGroup"
                 Resource:
-                  - "arn:aws:logs:eu-west-2:${env:AWS_ACCOUNT_ID}:log-group:/aws/lambda/alchelign*:*"
+                  - "arn:aws:logs:eu-west-2:${env:AWS_ACCOUNT_ID}:log-group:/aws/lambda/autoantibody*:*"
               - Effect: Allow
                 Action:
                   - "logs:PutLogEvents"
                 Resource:
-                  - "arn:aws:logs:eu-west-2:${env:AWS_ACCOUNT_ID}:log-group:/aws/lambda/alchelign*:*:*"
+                  - "arn:aws:logs:eu-west-2:${env:AWS_ACCOUNT_ID}:log-group:/aws/lambda/autoantibody*:*:*"
               - Effect: Allow
                 Action:
                   - "cognito-idp:AdminListGroupsForUser"
@@ -50,7 +50,12 @@ Resources:
                   - "s3:ListBucketVersions"
                   - "s3:GetBucketLocation"
                 Resource:
-                  - "arn:aws:s3:::alchelign-*"
+                  - "arn:aws:s3:::zeus-parameters-input-files*"
+                  - "arn:aws:s3:::zeus-parameters-input-files/*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-development*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-development/*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-production*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-production/*"
               - Effect: Allow
                 Action:
                   - "s3:PutObject"
@@ -65,5 +70,158 @@ Resources:
                   - "s3-object-lambda:Get*"
                   - "s3-object-lambda:List*"
                 Resource:
-                  - "arn:aws:s3:::alchelign-*/*"
-                  - "arn:aws:s3:::alchelign-*"
+                  - "arn:aws:s3:::zeus-parameters-input-files*"
+                  - "arn:aws:s3:::zeus-parameters-input-files/*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-development*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-development/*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-production*"
+                  - "arn:aws:s3:::alchemab-pipeline-results-production/*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:ListSecrets
+                Resource:
+                  - arn:aws:secretsmanager:eu-west-2:189545766043:secret:FRANKLIN_RDS-qVcu6h
+              - Effect: Allow
+                Action:
+                  - rds-db:connect
+                  - rds-data:ExecuteStatement
+                  - rds-data:BatchExecuteStatement
+                Resource: arn:aws:rds:eu-west-2:189545766043:db:franklin-metrics
+
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                  - rds:DescribeDBClusters
+                  - rds:DescribeDBClusterSnapshots
+                  - rds:DescribeDBClusterEndpoints
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - rds-data:BatchExecuteStatement
+                  - rds-data:BeginTransaction
+                  - rds-data:CommitTransaction
+                  - rds-data:ExecuteStatement
+                  - rds-data:RollbackTransaction
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - batch:SubmitJob
+                  - batch:DescribeJobs
+                  - batch:ListJobs
+                  - batch:TerminateJob
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - batch:RegisterJobDefinition
+                  - batch:DeregisterJobDefinition
+                  - batch:DescribeJobDefinitions
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - batch:CreateJobQueue
+                  - batch:DescribeJobQueues
+                  - batch:UpdateJobQueue
+                  - batch:DeleteJobQueue
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - athena:StartQueryExecution,
+                  - athena:GetWorkGroup,
+                  - athena:StopQueryExecution,
+                  - athena:GetQueryExecution,
+                  - athena:GetQueryResults,
+                  - athena:GetDataCatalog
+                Resource: "arn:aws:athena:eu-west-2:189545766043:workgroup/primary"
+              - Effect: Allow
+                Action:
+                  - glue:GetTable
+                  - glue:GetDatabase
+                  - athena:GetDataCatalog
+                  - glue:GetDataCatalog
+                Resource:
+                  - "arn:aws:glue:eu-west-2:189545766043:catalog"
+                  - "arn:aws:glue:eu-west-2:189545766043:benchling"
+                  - "arn:aws:glue:eu-west-2:189545766043:AwsDataCatalog"
+                  - "arn:aws:glue:eu-west-2:189545766043:database/datacube-staging"
+                  - "arn:aws:glue:eu-west-2:189545766043:table/datacube-staging/*"
+                  - "arn:aws:glue:eu-west-2:189545766043:database/datacube-testing"
+                  - "arn:aws:glue:eu-west-2:189545766043:table/datacube-testing/*"
+                  - "arn:aws:glue:eu-west-2:189545766043:table/alchemab"
+              - Effect: Allow
+                Action:
+                  - athena:GetDataCatalog
+                  - athena:GetTableMetadata
+                  - athena:GetDatabase
+                  - athena:ListDatabases
+                  - athena:ListTableMetadata
+                  - athena:*
+                  - lambda:*
+                  - glue:*
+                Resource:
+                  - "*"
+                  - arn:aws:glue:eu-west-2:189545766043:datacatalog/benchling
+                  - arn:aws:glue:eu-west-2:189545766043:datacatalog/AwsDataCatalog
+                  - arn:aws:glue:eu-west-2:189545766043:database/benchling
+                  - arn:aws:glue:eu-west-2:189545766043:table/benchling/alchemab
+                  - arn:aws:glue:eu-west-2:189545766043:table/benchling/alchemab/sequencing_library_bulk_bcr$raw
+
+              - Effect: Allow
+                Action:
+                  - athena:ListDataCatalogs
+                  - athena:GetDataCatalog
+                  - athena:StartQueryExecution
+                  - athena:ListEngineVersions
+                  - lambda:*
+                Resource:
+                  - arn:aws:lambda:eu-west-2:189545766043:function:athena_benchling_connector
+
+              - Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                Resource:
+                  - arn:aws:s3:::alchemab-bfd-data-dev
+                  - arn:aws:s3:::alchemab-bfd-glue-temp
+                  - arn:aws:s3:::alchemab-bfd-glue-tmp
+                  - arn:aws:s3:::rclone.backup.testing
+
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                Resource:
+                  - arn:aws:s3:::*
+
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - arn:aws:s3:::rclone.backup.testing
+                  - arn:aws:s3:::alchemab-bfd-data-dev
+                  - arn:aws:s3:::alchemab-bfd-athena-connections-splitbucket
+                  - arn:aws:s3:::alchemab-bfd-athena-connections-splitbucket/*
+
+              - Effect: Allow
+                Action:
+                  - s3:*Object
+                  - s3:*Objects
+                Resource:
+                  - arn:aws:s3:::rclone.backup.testing/*
+                  - arn:aws:s3:::alchemab-bfd-data-dev/*
+                  - arn:aws:s3:::alchemab-bfd-glue-tmp/*
+                  - arn:aws:s3:::alchemab-bfd-glue-temp/*
+
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                Resource:
+                  - arn:aws:s3:::alchemab-bfd-athena-connections-splitbucket
+                  - arn:aws:s3:::alchemab-bfd-athena-connections-splitbucket/*

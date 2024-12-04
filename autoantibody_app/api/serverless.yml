@@ -114,15 +114,101 @@ functions:
   #           authorizerId:
   #             Ref: ApiGatewayAuthorizer
 
-  get-upload-url:
-    handler: functions/s3_files_handler/handler.get_upload_url
+  # get-upload-url:
+  #   handler: functions/s3_files_handler/handler.get_upload_url
+  #   timeout: 20
+  #   environment:
+  #     AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
+  #   events:
+  #     - http:
+  #         path: get-upload-url
+  #         method: get
+  #         cors:
+  #           origins:
+  #             - "*"
+  #           headers:
+  #             - Content-Type
+  #             - Authorization
+  #             - x-access-token
+  #           allowCredentials: true
+  get-multipart-upload-url:
+    handler: functions/s3_files_handler/handler.get_multipart_upload_url
     timeout: 20
     environment:
       AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
     events:
       - http:
-          path: get-upload-url
+          path: get-multipart-upload-url
           method: get
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+  get-multipart-upload-part-url:
+    handler: functions/s3_files_handler/handler.get_multipart_upload_part_url
+    timeout: 20
+    environment:
+      AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
+    events:
+      - http:
+          path: get-multipart-upload-part-url
+          method: get
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+  complete_multipart_upload:
+    handler: functions/s3_files_handler/handler.complete_multipart_upload
+    timeout: 20
+    environment:
+      AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
+    events:
+      - http:
+          path: complete-multipart-upload
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+  abort_multipart_upload:
+    handler: functions/s3_files_handler/handler.abort_multipart_upload
+    timeout: 20
+    environment:
+      AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
+    events:
+      - http:
+          path: abort-multipart-upload
+          method: get
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+  download-file:
+    handler: functions/s3_files_handler/handler.download_file
+    timeout: 20
+    environment:
+      AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
+      STAGE: ${env:STAGE}
+    events:
+      - http:
+          path: download-file
+          method: post
           cors:
             origins:
               - "*"
@@ -180,6 +266,53 @@ functions:
     events:
       - http:
           path: get-run-data
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+
+  get-athena-data:
+    handler: functions/contact-athena/handler.submit_query
+    timeout: 30
+    events:
+      - http:
+          path: query-athena
+          method: get
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+
+  poll-athena:
+    handler: functions/contact-athena/handler.get_status
+    timeout: 30
+    events:
+      - http:
+          path: status
+          method: post
+          cors:
+            origins:
+              - "*"
+            headers:
+              - Content-Type
+              - Authorization
+              - x-access-token
+            allowCredentials: true
+  get-athena-response:
+    handler: functions/contact-athena/handler.get_data
+    timeout: 30
+    events:
+      - http:
+          path: get-athena-response
           method: post
           cors:
             origins:

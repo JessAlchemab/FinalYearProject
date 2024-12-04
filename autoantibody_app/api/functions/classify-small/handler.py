@@ -108,12 +108,3 @@ def lambda_handler(event, context):
                 'error': str(e)
             })
         }
-
-# For local testing
-if __name__ == "__main__":
-    test_event = {
-        "body": json.dumps({
-            "sequence": "YOUR_TEST_SEQUENCE_HERE"
-        })
-    }
-    print(json.dumps(lambda_handler(test_event, None), indent=2))

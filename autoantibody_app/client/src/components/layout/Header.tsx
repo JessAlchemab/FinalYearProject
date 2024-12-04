@@ -1,40 +1,41 @@
+import { Menu } from "antd";
 import { HomeOutlined } from "@ant-design/icons";
-import { Button } from "antd";
 import { useNavigate } from "react-router-dom";
-import "./Header.css";
 
-export const HeaderBar = () => {
+export const NavigationMenu = () => {
   const navigate = useNavigate();
 
+  const handleMenuClick = (path: string) => {
+    navigate(path);
+  };
+
   return (
-    <div
-      style={{
-        alignContent: "center",
-        display: "grid",
-        height: "100%",
-        gridTemplateColumns: "max-content auto",
-        gap: "1rem",
-      }}
+    <Menu
+      theme="dark"
+      mode="horizontal"
+      defaultSelectedKeys={["2"]}
+      style={{ flex: 1, minWidth: 0 }}
     >
-      <Button
-        onClick={() => {
-          const path = "/";
-          navigate(path);
-        }}
-        className="invisible-button"
+      <Menu.Item
+        key="home"
+        icon={<HomeOutlined />}
+        onClick={() => handleMenuClick("/")}
+      />
+      <Menu.Item
+        key="sequence"
+        onClick={() => handleMenuClick("/submit-sequence")}
       >
-        <HomeOutlined
-          style={{
-            height: "100%",
-            width: "100%",
-            marginTop: "auto",
-            marginBottom: "auto",
-            marginLeft: "1rem",
-            color: "white",
-            fill: "white",
-          }}
-        />
-      </Button>
-    </div>
+        Sequence
+      </Menu.Item>
+      <Menu.Item
+        key="submit-file"
+        onClick={() => handleMenuClick("/submit-file")}
+      >
+        Submit File
+      </Menu.Item>
+      <Menu.Item key="reports" onClick={() => handleMenuClick("/view-report")}>
+        Reports
+      </Menu.Item>
+    </Menu>
   );
 };
