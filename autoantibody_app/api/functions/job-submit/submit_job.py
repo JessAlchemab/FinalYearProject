@@ -285,4 +285,16 @@ def lambda_handler(event, context):
     files_setup = setup_files(input_file, uuid)
     commands = get_command_string(revision, os.environ['NF_OUTPUTSDIR'], files_setup['samplesheet'], True, os.environ['STAGE'], uuid)
     start_job(commands, batch_client, files_setup['samplesheet'], uuid, revision)
-    return {"status": "success"}
+
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,x-access-token",
+            "Access-Control-Allow-Methods": "POST,OPTIONS",
+        },
+        "body": json.dumps({
+            "hash_id": uuid,
+            "status": 200
+        }),
+    }

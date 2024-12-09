@@ -25,7 +25,7 @@ const ProbabilityHistogram: React.FC<ProbabilityHistogramProps> = ({
           y: yValues,
           type: "bar",
           marker: {
-            color: "blue",
+            color: "skyblue",
             opacity: 0.7,
           },
         },

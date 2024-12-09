@@ -42,7 +42,7 @@ fi
 echo "All assets downloaded successfully"
 
 
-docker build . -t autoantibody_classifier
+docker build --no-cache . -t autoantibody_classifier
 
 docker tag autoantibody_classifier 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
 docker push 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest

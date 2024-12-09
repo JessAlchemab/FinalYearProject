@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { InboxOutlined } from "@ant-design/icons";
-import { Upload, message, Button, DraggerProps, Progress } from "antd";
+import { InboxOutlined, QuestionCircleOutlined } from "@ant-design/icons";
+import { Upload, message, Button, DraggerProps, Progress, Tooltip } from "antd";
 import type { UploadChangeParam, UploadFile } from "antd/es/upload/interface";
 import { s3MultipartUpload, submitBatchJob } from "../../api/autoantibodyAPI";
 
@@ -45,13 +45,22 @@ export const SubmitFile = () => {
         }
       );
 
-      // Submit batch job with the hashed name from the response
-      await submitBatchJob(response.hashed_name);
-
-      // Success message
       message.success(`File ${selectedFile.name} uploaded successfully`);
+      // Submit batch job with the hashed name from the response
+      try {
+        submitBatchJob(response.hashed_name).then((res) => {
+          console.log(res);
+          message.success(
+            `Pipeline initiated successfully with name ${res.data.hash_id}. Check pipeline submission channel for progress.`,
+            100
+          );
+        });
+      } catch {
+        message.error(
+          `Succeeded at uploading file: ${selectedFile.name} but failed to submit pipeline.`
+        );
+      }
 
-      // Clear selected file and file list
       setSelectedFile(null);
       setFileList([]);
       setUploadProgress(0);
@@ -105,73 +114,106 @@ export const SubmitFile = () => {
         width: "100%",
         height: "100%",
         alignContent: "center",
+        overflowY: "scroll",
       }}
     >
       <div
         style={{
-          maxWidth: "40%",
+          width: "50%",
           marginLeft: "auto",
           marginRight: "auto",
+          display: "grid",
+          gap: "2rem",
+          height: "100%",
+          gridTemplateRows: "max-content auto auto",
         }}
       >
-        <Dragger {...draggerProps}>
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p className="ant-upload-text">
-            Click or drag file to this area to upload
-          </p>
-          <p className="ant-upload-hint">
-            Support for upload of a .tsv, .csv, or .parquet file. File must
-            contain at minimum either a column 'sequence_vh' containing the
-            fully backfilled VH amino acid sequence, or the columns present in
-            AIRR tsv files required to backfll amino acids (sequence_alignment
-            and germline_alignment_d_mask).
-          </p>
-          <p className="ant-upload-hint">
-            Other columns which are utilized by the pipeline and will give extra
-            analysis information are:
-          </p>
-          <ul className="ant-upload-hint">
-            <li className="ant-upload-hint">v_call</li>
-            <li className="ant-upload-hint">c_call</li>
-            <li className="ant-upload-hint">cdr3_aa</li>
-            <li className="ant-upload-hint">mu_count_total</li>
-          </ul>
-        </Dragger>
-
-        {selectedFile && (
-          <div style={{ marginTop: "1rem", textAlign: "center" }}>
-            Selected File: {selectedFile.name}
+        <div
+          style={{
+            display: "grid",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "row" }}>
+            <h4 style={{ height: "max-content", padding: "2rem" }}>
+              Submit File
+            </h4>
+            <Tooltip
+              title={
+                "Submit a .csv, .tsv or .parquet file containing, at minimum, either a column 'vh_sequence' which contains a fully backfilled VH amino acid sequence, or a sequence_alignment and germline_alignment_d_mask column from which the pipeline will infer vh_sequence"
+              }
+            >
+              <QuestionCircleOutlined />
+            </Tooltip>
           </div>
-        )}
-
-        {isUploading && (
-          <Progress
-            percent={uploadProgress}
-            status={uploadProgress === 100 ? "success" : "active"}
-            style={{ marginTop: "1rem" }}
-          />
-        )}
-
-        <Button
-          type="primary"
-          onClick={handleFileUpload}
-          disabled={!selectedFile || isUploading}
-          loading={isUploading}
-          style={{ marginTop: "1rem", width: "100%" }}
+        </div>
+        <div
+          style={{
+            maxWidth: "40%",
+            marginLeft: "auto",
+            marginRight: "auto",
+            maxHeight: "max-content",
+          }}
         >
-          {isUploading ? "Uploading..." : "Submit"}
-        </Button>
-        <Button
-          type="primary"
-          onClick={justSubmitJob}
-          disabled={isUploading}
-          loading={isUploading}
-          style={{ marginTop: "1rem", width: "100%" }}
-        >
-          {"Submit"}
-        </Button>
+          <Dragger style={{ maxHeight: "60vh" }} {...draggerProps}>
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">
+              Click or drag file to this area to upload
+            </p>
+            <p className="ant-upload-hint">
+              Support for upload of a .tsv, .csv, or .parquet file. File must
+              contain at minimum either a column 'sequence_vh' containing the
+              fully backfilled VH amino acid sequence, or the columns present in
+              AIRR tsv files required to backfill amino acids
+              (sequence_alignment and germline_alignment_d_mask).
+            </p>
+            <p className="ant-upload-hint">
+              Other columns which are utilized by the pipeline and will give
+              extra analysis information are:
+            </p>
+            <ul className="ant-upload-hint">
+              <li className="ant-upload-hint">v_call</li>
+              <li className="ant-upload-hint">c_call</li>
+              <li className="ant-upload-hint">cdr3_aa</li>
+              <li className="ant-upload-hint">mu_count_total</li>
+            </ul>
+          </Dragger>
+
+          {selectedFile && (
+            <div style={{ marginTop: "1rem", textAlign: "center" }}>
+              Selected File: {selectedFile.name}
+            </div>
+          )}
+
+          {isUploading && (
+            <Progress
+              percent={uploadProgress}
+              status={uploadProgress === 100 ? "success" : "active"}
+              style={{ marginTop: "1rem" }}
+            />
+          )}
+
+          <Button
+            type="primary"
+            onClick={handleFileUpload}
+            disabled={!selectedFile || isUploading}
+            loading={isUploading}
+            style={{ marginTop: "1rem", width: "100%" }}
+          >
+            {isUploading ? "Uploading..." : "Submit"}
+          </Button>
+          {/* <Button
+            type="primary"
+            onClick={justSubmitJob}
+            disabled={isUploading}
+            loading={isUploading}
+            style={{ marginTop: "1rem", width: "100%" }}
+          >
+            {"Submit"}
+          </Button> */}
+        </div>
       </div>
     </div>
   );

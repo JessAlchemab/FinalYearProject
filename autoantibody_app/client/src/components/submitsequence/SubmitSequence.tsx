@@ -1,7 +1,8 @@
-import { Space, Input, Button, Spin, Table } from "antd";
+import { Space, Input, Button, Spin, Table, Tooltip } from "antd";
 import { useState } from "react";
 import { classifySmall } from "../../api/autoantibodyAPI";
 import { ClassifierResponse } from "../../libs/types";
+import { QuestionCircleOutlined } from "@ant-design/icons";
 
 export const SubmitSequence = () => {
   const [sequence, setSequence] = useState<string>("");
@@ -57,12 +58,30 @@ export const SubmitSequence = () => {
         marginLeft: "auto",
         marginRight: "auto",
         display: "grid",
-        gap: "2rem",
+        gap: "6rem",
         height: "100%",
         gridTemplateRows: "max-content auto",
       }}
     >
-      <h4 style={{ height: "max-content" }}>Submit a VH amino acid sequence</h4>
+      <div
+        style={{
+          display: "grid",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <h4 style={{ height: "max-content", padding: "2rem" }}>
+            Submit a VH amino acid sequence
+          </h4>
+          <Tooltip
+            title={
+              "Submit a fully backfilled VH sequence to predict the machine learning model's confidence in its autoreactivity"
+            }
+          >
+            <QuestionCircleOutlined />
+          </Tooltip>
+        </div>
+      </div>
       <div
         style={{
           height: "50%",
@@ -82,7 +101,7 @@ export const SubmitSequence = () => {
             onClick={() => submitSequence()}
             disabled={sequence.length < 1 || responseLoading}
           >
-            Submit
+            Predict
           </Button>
         </Space.Compact>
         {responseLoading ? <Spin /> : <></>}

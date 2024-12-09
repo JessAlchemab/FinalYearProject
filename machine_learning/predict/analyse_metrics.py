@@ -19,8 +19,10 @@ def analyze_antibody_data(file_path):
     path = Path(file_path)
     if path.suffix == '.parquet':
         df = pd.read_parquet(file_path)
-    elif path.suffix in ['.tsv', '.txt']:
+    elif path.suffix == '.tsv':
         df = pd.read_csv(file_path, sep='\t')
+    elif path.suffix == '.csv':
+        df = pd.read_csv(file_path)
     else:
         raise ValueError("File must be .parquet or .tsv/.txt")
     

@@ -75,7 +75,6 @@ export const ViewReport = () => {
     if (reportName) {
       queryAthena()
         .then((res) => {
-          console.log(res);
           setAthenaContent(res);
           setAthenaContentLoading(false);
         })
@@ -99,34 +98,38 @@ export const ViewReport = () => {
   return (
     <Layout className="h-screen" style={{ height: "100%" }}>
       <Sider width={250} theme="light">
-        {sidebarLoading ? (
-          <div
-            className="flex justify-center items-center h-full"
-            style={{ height: "100%", alignItems: "center", display: "flex" }}
-          >
-            <div style={{ width: "100%" }}>
-              <Spin size="large" />
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={selectedKey ? [selectedKey] : []}
+          onSelect={handleReportSelect}
+          style={{ height: "100%" }}
+        >
+          <Menu.Item style={{ pointerEvents: "none" }} key={"title"}>
+            <h4>Available Reports</h4>
+          </Menu.Item>
+          {sidebarLoading ? (
+            <div
+              className="flex justify-center items-center h-full"
+              style={{ height: "100%", alignItems: "center", display: "flex" }}
+            >
+              <div style={{ width: "100%" }}>
+                <Spin size="large" />
+              </div>
             </div>
-          </div>
-        ) : (
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={selectedKey ? [selectedKey] : []}
-            onSelect={handleReportSelect}
-            style={{ height: "100%" }}
-          >
-            <Menu.Item style={{ pointerEvents: "none" }} key={"title"}>
-              <h4>Available Reports</h4>
-            </Menu.Item>
-            {reportList.map((report) => (
-              <Menu.Item key={report.hash_id}>
-                {report.hash_id}
-                <br />
-              </Menu.Item>
-            ))}
-          </Menu>
-        )}
+          ) : (
+            <>
+              {reportList.map((report) => {
+                return (
+                  <Menu.Item key={report.hash_id}>
+                    {report.hash_id}
+                    <br />
+                  </Menu.Item>
+                );
+              })}
+            </>
+          )}
+        </Menu>
       </Sider>
       <Layout.Content
         style={{ height: "100%", alignContent: "center", overflowY: "scroll" }}

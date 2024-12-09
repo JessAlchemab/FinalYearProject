@@ -49,6 +49,12 @@ Resources:
                   - "s3:ListBucket"
                   - "s3:ListBucketVersions"
                   - "s3:GetBucketLocation"
+                  - s3:CreateMultipartUpload
+                  - s3:UploadPart
+                  - s3:CompleteMultipartUpload
+                  - s3:AbortMultipartUpload
+                  - s3:ListObjects
+                  - s3:ListObjectsV2
                 Resource:
                   - "arn:aws:s3:::zeus-parameters-input-files*"
                   - "arn:aws:s3:::zeus-parameters-input-files/*"
@@ -69,6 +75,14 @@ Resources:
                   - "s3-object-lambda:PutObjectAcl"
                   - "s3-object-lambda:Get*"
                   - "s3-object-lambda:List*"
+                  - s3:CreateMultipartUpload
+                  - s3:UploadPart
+                  - s3:CompleteMultipartUpload
+                  - s3:AbortMult`ipartUpload
+                  - s3:ListObjects
+                  - s3:ListObjectsV2
+                  - s3:GetObject
+                  - s3:GeneratePresignedUrl
                 Resource:
                   - "arn:aws:s3:::zeus-parameters-input-files*"
                   - "arn:aws:s3:::zeus-parameters-input-files/*"

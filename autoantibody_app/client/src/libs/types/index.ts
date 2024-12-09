@@ -1,3 +1,3 @@
-import { ClassifierResponse } from "./classifierresponse";
+import { ClassifierResponse } from "./ClassifierResponse";
 
 export type { ClassifierResponse };

@@ -100,9 +100,9 @@ export async function submitBatchJob(hashed_name: any) {
   const response = await apiRequest(`submit-pipeline`, undefined, "POST", {
     input_file: hashed_name,
     // THIS LINE NEEDS CHANGING EVERY TIME A REVISION IS MADE
-    revision: "v1.0.25",
+    revision: "v1.0.27",
   });
-  return response as { data: ClassifierResponse };
+  return response as { data: { hash_id: string } };
 }
 
 export async function getReportList(searchTerm: string = "") {
@@ -245,7 +245,7 @@ export async function s3MultipartUpload(
       "POST",
       { parts: uploadedParts }
     );
-
+    console.log(completeUploadResponse);
     return completeUploadResponse.data;
   } catch (error) {
     console.error("Multipart upload error:", error);

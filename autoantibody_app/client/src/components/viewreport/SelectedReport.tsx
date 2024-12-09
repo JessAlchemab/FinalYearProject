@@ -76,7 +76,7 @@ export const SelectedReport = (props: Properties) => {
   // Convert the object to an array of key-value pairs for the table
   const tableData: DataItem[] = props.reportContent
     ? Object.entries(props.reportContent)
-        .filter(([key]) => key !== "hash_id" && key !== "probability_histogram") // Optionally exclude hash_id
+        .filter(([key]) => key !== "hash_id" && key !== "probability_histogram")
         .map(([key, value]) => ({
           metric: key,
           statistic: value,
@@ -113,10 +113,12 @@ export const SelectedReport = (props: Properties) => {
       dataIndex: "statistic",
       key: "statistic",
       width: "15rem",
-
       render: (value) =>
         typeof value === "number"
-          ? value.toFixed(value % 1 === 0 ? 0 : 2)
+          ? value.toLocaleString(undefined, {
+              minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+              maximumFractionDigits: value % 1 === 0 ? 0 : 2,
+            })
           : value,
     },
     {
@@ -124,13 +126,15 @@ export const SelectedReport = (props: Properties) => {
       dataIndex: "athena",
       key: "athena",
       width: "15rem",
-
       render: (value) =>
         props.athenaLoading ? (
           <Spin size="small" />
         ) : value ? (
           typeof value === "string" && !isNaN(parseFloat(value)) ? (
-            parseFloat(value).toFixed(value.includes(".") ? 2 : 0)
+            parseFloat(value).toLocaleString(undefined, {
+              minimumFractionDigits: value.includes(".") ? 2 : 0,
+              maximumFractionDigits: value.includes(".") ? 2 : 0,
+            })
           ) : (
             value
           )

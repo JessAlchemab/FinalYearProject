@@ -13,6 +13,7 @@ aws s3 cp --recursive s3://alchemab-ml/autoantibody_model /app/autoantibody_mode
 
 
 
+
 # Download predict script
 touch /app/predict.py
 touch /app/utils.py
