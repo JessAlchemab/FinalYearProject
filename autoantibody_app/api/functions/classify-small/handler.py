@@ -5,6 +5,7 @@ import tempfile
 import csv
 import uuid
 from typing import Dict, Any
+import sys
 
 def create_input_file(sequence: str, temp_dir: str) -> str:
     input_file = os.path.join(temp_dir, 'input.csv')
@@ -112,3 +113,20 @@ def lambda_handler(event, context):
                 'error': str(e)
             })
         }
+
+
+if __name__ == "__main__":
+    # Simulate an event and context
+    try:
+        # Parse the event from the first argument if provided, otherwise default to a sample
+        event = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {"body": '{"sequence": "ACTG"}'}
+        context = {}  # Simulate an empty context object
+
+        # Call the lambda_handler function
+        result = lambda_handler(event, context)
+
+        # Print the result in JSON format
+        print(json.dumps(result, indent=2))
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
