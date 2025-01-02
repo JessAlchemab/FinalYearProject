@@ -116,22 +116,22 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': str(e)})
         }
 
-if __name__ == "__main__":
-    print('aaa')
-    # Simulate an event and context
-    try:
-        # Parse the event from the first argument if provided, otherwise default to a sample
-        event = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {"body": '{"sequence": "ACTG"}'}
-        context = {}  # Simulate an empty context object
+# if __name__ == "__main__":
+#     print('aaa')
+#     # Simulate an event and context
+#     try:
+#         # Parse the event from the first argument if provided, otherwise default to a sample
+#         event = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {"body": '{"sequence": "ACTG"}'}
+#         context = {}  # Simulate an empty context object
 
-        # Call the lambda_handler function
-        print("event")
-        print(event)
+#         # Call the lambda_handler function
+#         print("event")
+#         print(event)
 
-        result = lambda_handler(event, context)
+#         result = lambda_handler(event, context)
 
-        # Print the result in JSON format
-        print(json.dumps(result, indent=2))
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+#         # Print the result in JSON format
+#         print(json.dumps(result, indent=2))
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         sys.exit(1)
