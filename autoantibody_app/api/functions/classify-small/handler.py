@@ -6,6 +6,7 @@ import csv
 import uuid
 from typing import Dict, Any
 import sys
+import time
 
 def create_input_file(sequence: str, temp_dir: str) -> str:
     input_file = os.path.join(temp_dir, 'input.csv')
@@ -75,13 +76,15 @@ def lambda_handler(event, context):
                 '--model_path', os.environ['MODEL_PATH']
             ]
             print(cmd)
+            start_time = time.time()
+
             # Actually run the command
             process = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True
             )
-            print(process)
+            print(f"Command execution time: {time.time() - start_time} seconds")
             if process.returncode != 0:
                 return {
                     'statusCode': 500,
@@ -116,6 +119,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
+    print('aaa')
     # Simulate an event and context
     try:
         # Parse the event from the first argument if provided, otherwise default to a sample
@@ -123,6 +127,9 @@ if __name__ == "__main__":
         context = {}  # Simulate an empty context object
 
         # Call the lambda_handler function
+        print("event")
+        print(event)
+
         result = lambda_handler(event, context)
 
         # Print the result in JSON format
