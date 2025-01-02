@@ -60,6 +60,7 @@ COPY temporary/utils.py /app/utils.py
 COPY temporary/aws_handler.py /app/aws_handler.py
 COPY temporary/analyse_metrics.py /app/analyse_metrics.py
 COPY temporary/secrets_manager.py /app/secrets_manager.py
+COPY temporary/handler.py /var/task/functions/classify-small/handler.py
 
 # On initialising the container make it run the script(?)
 # ENTRYPOINT ["/bin/bash", "-c", "torchrun --nproc_per_node=1 /app/predict.py \

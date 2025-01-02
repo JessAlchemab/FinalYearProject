@@ -13,18 +13,18 @@ Resources:
   #       - !Ref ApiGatewaySecurityGroup
 
   ApiGatewaySecurityGroup:
-        Type: AWS::EC2::SecurityGroup
-        Properties:
-          GroupName: api-gateway-security-group-dev
-          GroupDescription: Security group for API Gateway VPC endpoint
-          VpcId: ${env:VPC_ID}
-          SecurityGroupIngress:
-            - IpProtocol: tcp
-              FromPort: 443
-              ToPort: 443
-              CidrIp: ${env:VPC_CIDR}
-          SecurityGroupEgress:
-            - IpProtocol: tcp
-              FromPort: 443
-              ToPort: 443
-              CidrIp: 0.0.0.0/0
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: api-gateway-security-group-autoantibody-dev
+      GroupDescription: Security group for API Gateway VPC endpoint
+      VpcId: ${env:VPC_ID}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: ${env:VPC_CIDR}
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0

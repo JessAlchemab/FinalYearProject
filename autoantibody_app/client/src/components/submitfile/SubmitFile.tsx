@@ -12,11 +12,11 @@ export const SubmitFile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const justSubmitJob = async () => {
-    await submitBatchJob(
-      "6b19279a-08b4-4eb8-ba12-3eca8ac67687_autoantibody.parquet"
-    );
-  };
+  // const justSubmitJob = async () => {
+  //   await submitBatchJob(
+  //     "6b19279a-08b4-4eb8-ba12-3eca8ac67687_autoantibody.parquet"
+  //   );
+  // };
   const handleFileUpload = async () => {
     if (!selectedFile) {
       message.error("No file selected");

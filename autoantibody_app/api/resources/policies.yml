@@ -1,5 +1,5 @@
 Resources:
-  LambdaExecutionRole:
+  LambdaExecutionRoleAutoantibodydev:
     Type: AWS::IAM::Role
     Properties:
       RoleName: LambdaExecutionRoleAutoantibody${self:provider.stage}

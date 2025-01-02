@@ -16,7 +16,7 @@ wget -O temporary/analyse_metrics.py https://raw.githubusercontent.com/JessAlche
 wget -O temporary/utils.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/utils.py
 wget -O temporary/aws_handler.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/aws_handler.py
 wget -O temporary/secrets_manager.py https://raw.githubusercontent.com/JessAlchemab/FinalYearProject/refs/heads/main/machine_learning/predict/secrets_manager.py
-
+wget -O temporary/handler.py 
 # Verify downloads
 if [ ! -d "temporary/autoantibody_model" ]; then
     echo "Error: model not downloaded"

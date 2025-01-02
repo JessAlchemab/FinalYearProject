@@ -40,29 +40,29 @@ resources:
 provider:
   name: aws
   stage: ${opt:stage, 'dev'}
-  runtime: python3.8
+  runtime: python3.9
   region: eu-west-2
   iam:
-    role: !GetAtt LambdaExecutionRoleWaffles.Arn
+    role: !GetAtt LambdaExecutionRoleAutoantibodydev.Arn
   endpointType: PRIVATE
-  # vpcEndpointIds:
-  #   - vpce-0433c0454374657a5
-  # vpc:
-  #   securityGroupIds:
-  #     - !Ref ApiGatewaySecurityGroup
-  #   subnetIds:
-  #     - ${env:VPC_SUBNET_A}
-  #     - ${env:VPC_SUBNET_B}
-  # apiGateway:
-  #   resourcePolicy:
-  #     - Sid: allow-read-only-from-vpc
-  #       Effect: Allow
-  #       Principal: "*"
-  #       Action: "execute-api:Invoke"
-  #       Resource: "execute-api:/*"
-  #       Condition:
-  #         StringEquals:
-  #           "aws:sourceVpc": ${env:VPC_ID}
+  vpcEndpointIds:
+    - vpce-0433c0454374657a5
+  vpc:
+    securityGroupIds:
+      - !Ref ApiGatewaySecurityGroup
+    subnetIds:
+      - ${env:VPC_SUBNET_A}
+      - ${env:VPC_SUBNET_B}
+  apiGateway:
+    resourcePolicy:
+      - Sid: allow-read-only-from-vpc
+        Effect: Allow
+        Principal: "*"
+        Action: "execute-api:Invoke"
+        Resource: "execute-api:/*"
+        Condition:
+          StringEquals:
+            "aws:sourceVpc": ${env:VPC_ID}
 
   ecr:
     images:
@@ -70,67 +70,6 @@ provider:
         uri: 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
 
 functions:
-  # s3-list-files:
-  #   handler: functions/s3_files_handler/handler.list_files
-  #   timeout: 20
-  #   environment:
-  #     ALCHELIGN_INPUT_S3_BUCKET: ${env:ALCHELIGN_INPUT_S3_BUCKET}
-  #   events:
-  #     - http:
-  #         path: s3-list-files
-  #         method: get
-  #         cors:
-  #           origins:
-  #             - "*"
-  #           headers:
-  #             - Content-Type
-  #             - Authorization
-  #             - x-access-token
-  #           allowCredentials: true
-  #         authorizer:
-  #           type: COGNITO_USER_POOLS
-  #           authorizerId:
-  #             Ref: ApiGatewayAuthorizer
-
-  # s3-get-file:
-  #   handler: functions/s3_files_handler/handler.get_file_url
-  #   timeout: 20
-  #   environment:
-  #     ALCHELIGN_INPUT_S3_BUCKET: ${env:ALCHELIGN_INPUT_S3_BUCKET}
-  #   events:
-  #     - http:
-  #         path: s3-get-file
-  #         method: get
-  #         cors:
-  #           origins:
-  #             - "*"
-  #           headers:
-  #             - Content-Type
-  #             - Authorization
-  #             - x-access-token
-  #           allowCredentials: true
-  #         authorizer:
-  #           type: COGNITO_USER_POOLS
-  #           authorizerId:
-  #             Ref: ApiGatewayAuthorizer
-
-  # get-upload-url:
-  #   handler: functions/s3_files_handler/handler.get_upload_url
-  #   timeout: 20
-  #   environment:
-  #     AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
-  #   events:
-  #     - http:
-  #         path: get-upload-url
-  #         method: get
-  #         cors:
-  #           origins:
-  #             - "*"
-  #           headers:
-  #             - Content-Type
-  #             - Authorization
-  #             - x-access-token
-  #           allowCredentials: true
   get-multipart-upload-url:
     handler: functions/s3_files_handler/handler.get_multipart_upload_url
     timeout: 20
@@ -327,17 +266,14 @@ functions:
     image:
       name: classify-small-image
       command:
-        - "/var/task/functions/classify-small/handler.py" # Replace with your actual handler
-      # entrypoint:
-      #   - "/usr/bin/python3"
-    handler: functions/classify-small/handler.lambda_handler # Updated this line
+        - "/var/task/functions/classify-small/handler.lambda_handler"
     timeout: 300
     memorySize: 2048
     environment:
       PYTHONPATH: /var/task:/app
       MODEL_PATH: /app/autoantibody_model/trained_model/classifier-model
       TOKENIZER_PATH: /app/autoantibody_model/tokenizers
-      IS_LOCAL: true
+      # IS_LOCAL: true
     events:
       - http:
           path: classify-small
