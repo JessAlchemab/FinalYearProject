@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import csv
@@ -7,6 +8,9 @@ import uuid
 from typing import Dict, Any
 import sys
 import time
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def create_input_file(sequence: str, temp_dir: str) -> str:
     input_file = os.path.join(temp_dir, 'input.csv')
@@ -37,9 +41,18 @@ def read_output_file(output_file: str) -> Dict[str, Any]:
 #         return ['torchrun']
 
 def lambda_handler(event, context):
+    logger.info("Lambda handler started")
+    logger.info(f"Received event: {event}")
+
     try:
-        body = json.loads(event.get('body', '{}'))
+        body = event.get('body', '{}')
+        logger.info(f"Received body: {body}")
+        
+        if isinstance(body, str):
+            body = json.loads(body)
         sequence = body.get('sequence')
+        
+        logger.info(f"Parsed sequence: {sequence}")
         
         if not sequence:
             return {
@@ -47,76 +60,61 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'No sequence provided'})
             }
 
-        # Create temporary directory for everything to run in
         temp_dir = tempfile.mkdtemp()
-        # temp_dir = os.path.join(os.getcwd(), 'temp') if os.environ.get('IS_LOCAL') == 'true' else tempfile.mkdtemp()
-        os.makedirs(temp_dir, exist_ok=True)
+        logger.info(f"Created temp dir: {temp_dir}")
 
         try:
-            # make input file
             input_file = create_input_file(sequence, temp_dir)
+            logger.info(f"Created input file: {input_file}")
             
-            # make a unique hash ID, since that's what the script expects to receive
             file_id = str(uuid.uuid4())
             output_file = f"autoantibody_annotated.{file_id}.tsv"
             output_path = os.path.join(temp_dir, output_file)
+            logger.info(f"Output path: {output_path}")
 
-            base_cmd = ['torchrun']
-
-            # Construct the full command for docker running
-            cmd = base_cmd + [
-                '--nproc_per_node=1',
-                '/app/predict.py',
-                '--run_mode', 'cpu',
-                '--input_path', input_file,
-                '--output_file', output_path,
-                # '--input_path', input_file if not os.environ.get('IS_LOCAL') else f'/temp/{os.path.basename(input_file)}',
-                # '--output_file', output_path if not os.environ.get('IS_LOCAL') else f'/temp/{output_file}',
-                '--tokenizer_path', os.environ['TOKENIZER_PATH'],
-                '--model_path', os.environ['MODEL_PATH']
-            ]
-            print(cmd)
-            start_time = time.time()
-
-            # Actually run the command
-            process = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True
-            )
-            print(f"Command execution time: {time.time() - start_time} seconds")
+            cmd = ['torchrun', '--nproc_per_node=1', '/app/predict.py',
+                  '--run_mode', 'cpu',
+                  '--input_path', input_file,
+                  '--output_file', output_path,
+                  '--tokenizer_path', os.environ['TOKENIZER_PATH'],
+                  '--model_path', os.environ['MODEL_PATH']]
+            
+            logger.info(f"Running command: {' '.join(cmd)}")
+            process = subprocess.run(cmd, capture_output=True, text=True)
+            logger.info(f"Process returncode: {process.returncode}")
+            logger.info(f"Process stdout: {process.stdout}")
+            logger.info(f"Process stderr: {process.stderr}")
+            
             if process.returncode != 0:
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({
-                        'error': 'Prediction failed',
-                        'details': process.stderr
-                    })
-                }
+                raise Exception(f"Command failed: {process.stderr}")
 
-            # Read and return results
             results = read_output_file(output_path)
+            logger.info(f"Results: {results}")
             
             return {
                 'statusCode': 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
                 'body': json.dumps(results)
             }
 
         finally:
-            # Clean up temp directory if on lambda
-            # if os.environ.get('IS_LOCAL') != 'true' and os.path.exists(temp_dir):
             if os.path.exists(temp_dir):
-                import shutil
                 shutil.rmtree(temp_dir)
+                logger.info("Cleaned up temp dir")
 
     except Exception as e:
+        logger.error(f"Error: {str(e)}", exc_info=True)
         return {
             'statusCode': 500,
-            'body': json.dumps({
-                'error': str(e)
-            })
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json'
+            },
+            'body': json.dumps({'error': str(e)})
         }
-
 
 if __name__ == "__main__":
     print('aaa')
