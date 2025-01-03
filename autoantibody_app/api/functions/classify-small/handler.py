@@ -41,18 +41,18 @@ def read_output_file(output_file: str) -> Dict[str, Any]:
 #         return ['torchrun']
 
 def lambda_handler(event, context):
-    logger.info("Lambda handler started")
-    logger.info(f"Received event: {event}")
-
+    print('event')
+    print(event)
     try:
-        body = event.get('body', '{}')
-        logger.info(f"Received body: {body}")
+        body = json.loads(event['body'])
+
+        # body = event.get('body', '{}')
+        # logger.info(f"Received body: {body}")
         
-        if isinstance(body, str):
-            body = json.loads(body)
+        # if isinstance(body, str):
+        # body = json.loads(body)
         sequence = body.get('sequence')
         
-        logger.info(f"Parsed sequence: {sequence}")
         
         if not sequence:
             return {
@@ -61,16 +61,13 @@ def lambda_handler(event, context):
             }
 
         temp_dir = tempfile.mkdtemp()
-        logger.info(f"Created temp dir: {temp_dir}")
 
         try:
             input_file = create_input_file(sequence, temp_dir)
-            logger.info(f"Created input file: {input_file}")
             
             file_id = str(uuid.uuid4())
             output_file = f"autoantibody_annotated.{file_id}.tsv"
             output_path = os.path.join(temp_dir, output_file)
-            logger.info(f"Output path: {output_path}")
 
             cmd = ['torchrun', '--nproc_per_node=1', '/app/predict.py',
                   '--run_mode', 'cpu',
@@ -79,11 +76,7 @@ def lambda_handler(event, context):
                   '--tokenizer_path', os.environ['TOKENIZER_PATH'],
                   '--model_path', os.environ['MODEL_PATH']]
             
-            logger.info(f"Running command: {' '.join(cmd)}")
             process = subprocess.run(cmd, capture_output=True, text=True)
-            logger.info(f"Process returncode: {process.returncode}")
-            logger.info(f"Process stdout: {process.stdout}")
-            logger.info(f"Process stderr: {process.stderr}")
             
             if process.returncode != 0:
                 raise Exception(f"Command failed: {process.stderr}")
