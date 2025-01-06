@@ -149,7 +149,7 @@ export const SubmitFile = () => {
         </div>
         <div
           style={{
-            maxWidth: "40%",
+            width: "max(60%, 400px)",
             marginLeft: "auto",
             marginRight: "auto",
             maxHeight: "max-content",
@@ -165,20 +165,19 @@ export const SubmitFile = () => {
             <p className="ant-upload-hint">
               Support for upload of a .tsv, .csv, or .parquet file. File must
               contain at minimum either a column 'sequence_vh' containing the
-              fully backfilled VH amino acid sequence, or the columns present in
-              AIRR tsv files required to backfill amino acids
-              (sequence_alignment and germline_alignment_d_mask).
+              fully backfilled VH amino acid sequence, or sequence_alignment AND
+              germline_alignment_d_mask.
             </p>
             <p className="ant-upload-hint">
               Other columns which are utilized by the pipeline and will give
               extra analysis information are:
             </p>
-            <ul className="ant-upload-hint">
-              <li className="ant-upload-hint">v_call</li>
-              <li className="ant-upload-hint">c_call</li>
-              <li className="ant-upload-hint">cdr3_aa</li>
-              <li className="ant-upload-hint">mu_count_total</li>
-            </ul>
+            <p className="ant-upload-hint">
+              v_call<br></br>
+              c_call<br></br>
+              cdr3_aa<br></br>
+              mu_count_total<br></br>
+            </p>
           </Dragger>
 
           {selectedFile && (

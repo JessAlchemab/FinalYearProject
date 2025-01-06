@@ -95,6 +95,7 @@ export const SubmitSequence = () => {
           <Input
             defaultValue=""
             onChange={(evt) => setSequence(evt.target.value)}
+            onPressEnter={() => submitSequence()}
           />
           <Button
             type="primary"
