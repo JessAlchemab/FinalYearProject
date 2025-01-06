@@ -53,7 +53,7 @@ docker build . -t autoantibody_classifier
 docker tag autoantibody_classifier 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
 docker push 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
 
-# docker tag autoantibody_classifier 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_gpu:latest
-# docker push 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_gpu:latest
+docker tag autoantibody_classifier 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_gpu:latest
+docker push 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier_gpu:latest
 
 rm -rf temporary
