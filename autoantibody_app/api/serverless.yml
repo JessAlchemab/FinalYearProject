@@ -14,12 +14,10 @@ package:
     - "requirements.txt"
     - "functions/**"
 
-# custom:
-#   stage: ${opt:stage, 'dev'}
-#   pythonRequirements:
-#     dockerizePip: true
-
 custom:
+  stage: ${opt:stage, 'dev'}
+  pythonRequirements:
+    dockerizePip: true
   serverless-offline:
     httpPort: 3000
     lambdaPort: 3002
@@ -28,9 +26,6 @@ custom:
     host: "0.0.0.0"
     useChildProcesses: true
 
-# resources:
-#   - ${file(resources/vpc.yml)}
-#   - ${file(resources/policies.yml)}
 resources:
   - ${file(resources/api-gateway-errors.yml)}
   - ${file(resources/vpc.yml)}
@@ -50,6 +45,8 @@ provider:
   vpc:
     securityGroupIds:
       - !Ref ApiGatewaySecurityGroup
+      - sg-096e7c877829d27b4
+      - sg-00ce9690be085954c
     subnetIds:
       - ${env:VPC_SUBNET_A}
       - ${env:VPC_SUBNET_B}
@@ -67,7 +64,9 @@ provider:
   ecr:
     images:
       classify-small-image:
-        uri: 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
+        path: functions/classify-small
+        platform: linux/amd64
+        # uri: 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest
 
 functions:
   get-multipart-upload-url:
@@ -162,6 +161,7 @@ functions:
     timeout: 30
     environment:
       STAGE: ${env:STAGE}
+      AUTOANTIBODY_S3_BUCKET: ${env:AUTOANTIBODY_S3_BUCKET}
       NF_INPUTSDIR: ${env:NF_INPUTSDIR}
       NF_OUTPUTSDIR: ${env:NF_OUTPUTSDIR}
       NF_LOGSDIR: ${env:NF_LOGSDIR}
@@ -263,17 +263,13 @@ functions:
             allowCredentials: true
 
   classify-small:
-    image:
-      name: classify-small-image
-      command:
-        - "/var/task/functions/classify-small/handler.lambda_handler"
+    image: 189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:lambda
     timeout: 300
     memorySize: 2048
     environment:
       PYTHONPATH: /var/task:/app
-      MODEL_PATH: /app/autoantibody_model/trained_model/classifier-model
-      TOKENIZER_PATH: /app/autoantibody_model/tokenizers
-      # IS_LOCAL: true
+      MODEL_PATH: /var/task/autoantibody_model/trained_model/classifier-model
+      TOKENIZER_PATH: /var/task/autoantibody_model/tokenizers
     events:
       - http:
           path: classify-small

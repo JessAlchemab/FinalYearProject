@@ -101,8 +101,8 @@ Resources:
                   - rds-db:connect
                   - rds-data:ExecuteStatement
                   - rds-data:BatchExecuteStatement
-                Resource: arn:aws:rds:eu-west-2:189545766043:db:franklin-metrics
-
+                Resource:
+                  - arn:aws:rds:eu-west-2:189545766043:db:franklin-metrics
               - Effect: Allow
                 Action:
                   - rds:DescribeDBInstances
@@ -239,3 +239,13 @@ Resources:
                 Resource:
                   - arn:aws:s3:::alchemab-bfd-athena-connections-splitbucket
                   - arn:aws:s3:::alchemab-bfd-athena-connections-splitbucket/*
+
+              - Effect: Allow
+                Action:
+                  - dynamodb:DescribeTable
+                  - dynamodb:Scan
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource:
+                  - arn:aws:dynamodb:eu-west-2:189545766043:table/pipeline-runs-development
+                  - arn:aws:dynamodb:eu-west-2:189545766043:table/pipeline-runs-production

@@ -1,0 +1,3 @@
+shortuuid
+wonderwords
+boto3

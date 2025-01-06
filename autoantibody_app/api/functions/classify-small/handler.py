@@ -30,29 +30,12 @@ def read_output_file(output_file: str) -> Dict[str, Any]:
     except Exception as e:
         return {"error": f"Failed to read output file: {str(e)}"}
 
-# def get_docker_command():
-#     if os.environ.get('IS_LOCAL') == 'true':
-#         return [
-#             'docker', 'run',
-#             '--rm',  
-#             '-v', f'{os.getcwd()}/temp:/temp', 
-#             '189545766043.dkr.ecr.eu-west-2.amazonaws.com/alchemab/autoantibody_classifier:latest',  
-#             'torchrun'
-#         ]
-#     else:
-#         return ['torchrun']
 
 def lambda_handler(event, context):
     print('event')
     print(event)
     try:
         body = json.loads(event['body'])
-
-        # body = event.get('body', '{}')
-        # logger.info(f"Received body: {body}")
-        
-        # if isinstance(body, str):
-        # body = json.loads(body)
         sequence = body.get('sequence')
         
         
@@ -76,17 +59,6 @@ def lambda_handler(event, context):
                 os.environ['TOKENIZER_PATH'],
                 os.environ['MODEL_PATH']
             )
-            # cmd = ['torchrun', '--nproc_per_node=1', '/app/predict.py',
-            #       '--run_mode', 'cpu',
-            #       '--input_path', input_file,
-            #       '--output_file', output_path,
-            #       '--tokenizer_path', os.environ['TOKENIZER_PATH'],
-            #       '--model_path', os.environ['MODEL_PATH']]
-            
-            # process = subprocess.run(cmd, capture_output=True, text=True)
-            
-            # if process.returncode != 0:
-            #     raise Exception(f"Command failed: {process.stderr}")
 
             results = read_output_file(output_path)
             logger.info(f"Results: {results}")
@@ -115,23 +87,3 @@ def lambda_handler(event, context):
             },
             'body': json.dumps({'error': str(e)})
         }
-
-# if __name__ == "__main__":
-#     print('aaa')
-#     # Simulate an event and context
-#     try:
-#         # Parse the event from the first argument if provided, otherwise default to a sample
-#         event = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {"body": '{"sequence": "ACTG"}'}
-#         context = {}  # Simulate an empty context object
-
-#         # Call the lambda_handler function
-#         print("event")
-#         print(event)
-
-#         result = lambda_handler(event, context)
-
-#         # Print the result in JSON format
-#         print(json.dumps(result, indent=2))
-#     except Exception as e:
-#         print(f"Error: {e}")
-#         sys.exit(1)

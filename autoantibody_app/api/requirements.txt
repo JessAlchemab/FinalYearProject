@@ -1,0 +1,5 @@
+shortuuid
+wonderwords
+boto3
+psycopg2-binary
+pandas

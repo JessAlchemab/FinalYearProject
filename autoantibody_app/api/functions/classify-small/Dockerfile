@@ -31,10 +31,18 @@ RUN pip --no-cache-dir install --upgrade pip && \
     pip install awslambdaric && \
     rm -f /tmp/requirements.txt
 
+
+RUN mkdir -p /tmp/huggingface_cache && \
+    chmod 777 /tmp/huggingface_cache
+
+ENV TRANSFORMERS_CACHE=/tmp/huggingface_cache
+ENV HF_HOME=/tmp/huggingface_cache
+
 # Set the working directory
 WORKDIR /var/task
 
 # Copy your application files
+
 
 # MODEL_PATH: /app/autoantibody_model/trained_model/classifier-model
 # TOKENIZER_PATH: /app/autoantibody_model/tokenizers
