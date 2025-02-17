@@ -9,6 +9,9 @@ const httpClient = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL_PROTOCOL}://${
     import.meta.env.VITE_AUTOANTIBODY_URL
   }/`,
+  // baseURL: `${import.meta.env.VITE_API_URL_PROTOCOL}://${
+  //   import.meta.env.VITE_AUTOANTIBODY_URL
+  // }/`,
 });
 
 async function apiRequest(
@@ -100,7 +103,7 @@ export async function submitBatchJob(hashed_name: any) {
   const response = await apiRequest(`submit-pipeline`, undefined, "POST", {
     input_file: hashed_name,
     // THIS LINE NEEDS CHANGING EVERY TIME A REVISION IS MADE
-    revision: "v1.0.27",
+    revision: "v1.0.28",
   });
   return response as { data: { hash_id: string } };
 }
